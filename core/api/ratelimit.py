@@ -7,7 +7,6 @@ from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 
-
 DISABLED_RATE_VALUES = {"", "0", "off", "none", "false"}
 
 
