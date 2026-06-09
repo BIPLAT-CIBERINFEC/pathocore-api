@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#7](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/7) Fix auth setup for public generic databrowser access and protected use-case flows.
 - [#8](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/8) Fix use-case isolate explorer data handling and remove unused metadata models.
 - [#9](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/9) Harden release ignore rules for local env files, certificates, keys and secrets.
+- [#14](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/14) Add rate-limit to protect api endpoints.
 
 ### `Dependencies`
 
