@@ -18,7 +18,7 @@ flowchart LR
         api[PathoCore Django REST API]
         scheduler[Supercronic scheduler]
         keycloak[Keycloak identity service]
-        keycloak_db[(Keycloak MySQL data)]
+        pathocore-api-keycloak-db[(Keycloak MySQL data)]
     end
 
     app_db[(PathoCore application database)]
@@ -30,7 +30,7 @@ flowchart LR
     apache -->|Identity routes| keycloak
     api -->|Samples, metadata and cached summaries| app_db
     api -->|Validate tokens and manage approved access| keycloak
-    keycloak --> keycloak_db
+    keycloak --> pathocore-api-keycloak-db
     api -.->|Notifications| smtp
     scheduler -->|Refresh DataBrowser caches| api
 ```
@@ -440,7 +440,7 @@ mysqldump --single-transaction --routines --triggers \
 podman volume ls | grep 'pathocore-api'
 podman volume export "$DOCUMENTS_VOLUME" > "$BACKUP_DIR/documents.tar"
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec -T keycloak_db sh -c \
+  exec -T pathocore-api-keycloak-db sh -c \
   'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
   > "$BACKUP_DIR/keycloak-database.sql"
 tar -C /srv/containers/bind -czf "$BACKUP_DIR/bind-mounts.tar.gz" pathocore-api
@@ -496,12 +496,12 @@ install -m 0600 "$BACKUP_DIR/apache_production_settings.txt" deployment/settings
 install -m 0600 "$BACKUP_DIR/keycloak_production_settings.txt" deployment/settings/keycloak_production_settings.txt
 bash container_install.sh --action fix-permissions --engine podman \
   --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
-podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d keycloak_db
+podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d pathocore-api-keycloak-db
 until podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec -T keycloak_db sh -c \
+  exec -T pathocore-api-keycloak-db sh -c \
   'mysqladmin ping -h 127.0.0.1 -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent'; do sleep 2; done
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec -T keycloak_db sh -c \
+  exec -T pathocore-api-keycloak-db sh -c \
   'exec mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
   < "$BACKUP_DIR/keycloak-database.sql"
 ```
@@ -558,9 +558,9 @@ diagnostic last resort and must use the same backup and release procedure.
 
 ```bash
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  logs --tail 200 apache
+  logs --tail 200 pathocore-api-apache
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec apache httpd -t
+  exec pathocore-api-apache httpd -t
 
 APACHE_PORT='CHANGE_ME'
 SERVER_STATUS_SERVER_NAME='localhost'
@@ -587,7 +587,7 @@ sudo mv /var/log/local/pathocore-api/apache/modsec_debug.log \
   /var/log/local/pathocore-api/apache/modsec_debug.log.blocked
 bash container_install.sh --action fix-permissions --engine podman \
   --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
-podman compose --env-file .env.production.file -f docker-compose.prod.yml restart apache
+podman compose --env-file .env.production.file -f docker-compose.prod.yml restart pathocore-api-apache
 ```
 
 #### Keycloak realm bind
