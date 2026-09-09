@@ -138,7 +138,7 @@ services:
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_password}
       KC_HEALTH_ENABLED: "true"
-      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8380}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://pathocore-api-keycloak:8080}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded

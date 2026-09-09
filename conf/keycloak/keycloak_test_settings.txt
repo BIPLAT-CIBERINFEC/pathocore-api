@@ -13,9 +13,9 @@ KEYCLOAK_DB_ROOT_PASSWORD='root'
 # Host loopback port exposing the test database for diagnostics. Example: 8382
 KEYCLOAK_DB_PORT_HOST='8382'
 
-# Exact browser-facing URL for the disposable Keycloak service.
-# Example: http://keycloak.localhost:8380
-KEYCLOAK_PUBLIC_URL='http://keycloak.localhost:8380'
+# Exact URL for the disposable Keycloak service.
+# Example: http://pathocore-api-keycloak:8080
+KEYCLOAK_PUBLIC_URL='http://pathocore-api-keycloak:8080'
 # Host loopback diagnostic port exposing Keycloak. Example: 8381
 KEYCLOAK_PORT='8381'
 # Disposable server-bootstrap administrator username. Example: admin
