@@ -43,30 +43,55 @@ API_CORS_ALLOWED_ORIGINS='http://127.0.0.1:3000,http://localhost:3000'
 API_THROTTLE_RATE='500/hour'
 API_DOCS_REQUIRE_STAFF='true'
 
-### OIDC token validation for this application
+### OpenID Connect (OIDC) access-token validation
 # Generated because ADDONS.keycloak.CONFIG_SERVICE selects this service.
 # Disabled by default so disposable tests do not require identity bootstrap.
+# Require a valid OIDC access token for protected API endpoints. Example: false
 OIDC_AUTH_REQUIRED='false'
+# Identity-provider URL expected in the JWT `iss` (issuer) claim. It must match
+# exactly, including scheme, hostname, port, path, realm, and trailing slash.
+# Example: http://127.0.0.1:8081/realms/test
 OIDC_ISSUER='http://keycloak.localhost:8380/realms/ciberisciii_datahub'
+# JSON Web Key Set (JWKS) endpoint used to verify token signatures. This is a
+# server-to-server URL and may use an internal container hostname.
+# Example: http://127.0.0.1:8081/realms/test/protocol/openid-connect/certs
 OIDC_JWKS_URL='http://pathocore-api-keycloak:8080/realms/ciberisciii_datahub/protocol/openid-connect/certs'
+# API identifier expected in the JWT `aud` (audience) claim. Example: test-api
 OIDC_AUDIENCE='pathocore-api'
+# OAuth/OIDC client identifier expected as the authorized calling application.
+# Example: test-client
 OIDC_CLIENT_ID='pathocore-api'
+# How long downloaded JWKS signing keys remain cached, in seconds. Example: 300
 OIDC_JWKS_CACHE_TTL_SECONDS='300'
+# Maximum duration of a JWKS HTTP request, in seconds. Example: 5
 OIDC_JWKS_TIMEOUT_SECONDS='5'
 
-### PathoCore authorization and Keycloak administration
+### PathoCore authorization
 PATHOCORE_ENABLE_PUBLIC_READ_ENDPOINTS='true'
 PATHOCORE_ACCESS_REQUEST_USE_CASES='[{"name":"mepram","label":"MEPRAM","labs":[]},{"name":"relecov","label":"RELECOV","labs":[]},{"name":"redlabra","label":"RedLaBRA","labs":[]},{"name":"ai-models","label":"AI Models","labs":[]}]'
 PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS=''
+
+### Application-side Keycloak Admin REST API client
+# Generated only when ADDONS.keycloak.ADMIN_ACCESS is true. Test values are disposable.
+# Internal Compose URL for the Keycloak service. Example: http://keycloak:8080
 KEYCLOAK_ADMIN_API_BASE_URL='http://pathocore-api-keycloak:8080'
+# Disposable realm managed by the application. Example: test
 KEYCLOAK_ADMIN_API_REALM='ciberisciii_datahub'
+# Realm used to obtain the admin access token. Example: master
 KEYCLOAK_ADMIN_API_TOKEN_REALM='master'
+# OAuth client used for admin-token requests. Example: admin-cli
 KEYCLOAK_ADMIN_API_CLIENT_ID='admin-cli'
+# Optional confidential-client secret; empty in the disposable test stack.
 KEYCLOAK_ADMIN_API_CLIENT_SECRET=''
+# Disposable bootstrap administrator username. Example: admin
 KEYCLOAK_ADMIN_API_USERNAME='admin'
+# Disposable bootstrap administrator password. Example: admin
 KEYCLOAK_ADMIN_API_PASSWORD='admin'
+# Timeout in seconds for Keycloak Admin REST API requests. Example: 10
 KEYCLOAK_ADMIN_API_TIMEOUT_SECONDS='10'
+# Disable real action-email delivery in disposable tests. Example: false
 KEYCLOAK_ADMIN_API_SEND_ACTION_EMAILS='false'
+# Optional absolute redirect URI for required-action emails; empty in tests.
 KEYCLOAK_ADMIN_API_ACTION_EMAIL_REDIRECT_URI=''
 
 ### Local email defaults

@@ -30,11 +30,11 @@ APP_UID='1212'
 APP_GID='1212'
 # Production services should normally use a non-login shell. Example: /sbin/nologin
 APP_SHELL='/sbin/nologin'
-# Application port published on host loopback and used by Gunicorn. Example: 8301
+# Internal application port used by Gunicorn and the reverse proxy. Example: 8001
 APP_PORT='8301'
 
 ### Persistent host sources
-# Documents use the Compose-managed app_documents named volume.
+# Documents use the Compose-managed pathocore-api_documents named volume.
 # Application logs remain on the host and must be creatable by the installer.
 # Example: /var/log/local/pathocore-api/apps
 HOST_LOG_PATH='/var/log/local/pathocore-api/apps'
@@ -81,31 +81,55 @@ API_THROTTLE_RATE='500/hour'
 # Applications may use this policy to restrict interactive API documentation.
 API_DOCS_REQUIRE_STAFF='true'
 
-### OIDC token validation for this application
+### OpenID Connect (OIDC) access-token validation
 # Generated because ADDONS.keycloak.CONFIG_SERVICE selects this service.
+# Require a valid OIDC access token for protected API endpoints. Example: true
 OIDC_AUTH_REQUIRED='true'
-# Issuer must exactly match the token's iss claim. JWKS exposes public signing keys.
+# Identity-provider URL expected in the JWT `iss` (issuer) claim. It must match
+# exactly, including scheme, hostname, port, path, realm, and trailing slash.
+# Example: https://auth.example.org/realms/institutional
 OIDC_ISSUER='https://CHANGE_ME/realms/CHANGE_ME'
-OIDC_JWKS_URL='https://CHANGE_ME/realms/CHANGE_ME/protocol/openid-connect/certs'
-# Audience identifies the protected API; client ID identifies the calling application.
-OIDC_AUDIENCE='CHANGE_ME'
-OIDC_CLIENT_ID='CHANGE_ME'
+# JSON Web Key Set (JWKS) endpoint used to verify token signatures. This is a
+# server-to-server URL and may use an internal container hostname.
+# Example: https://auth.example.org/realms/institutional/protocol/openid-connect/certs
+OIDC_JWKS_URL='http://pathocore-api-keycloak:8080/realms/ciberisciii_datahub/protocol/openid-connect/certs'
+# API identifier expected in the JWT `aud` (audience) claim. Example: application-api
+OIDC_AUDIENCE='pathocore-api'
+# OAuth/OIDC client identifier expected as the authorized calling application.
+# Example: application-web
+OIDC_CLIENT_ID='pathocore-web'
+# How long downloaded JWKS signing keys remain cached, in seconds. Example: 300
 OIDC_JWKS_CACHE_TTL_SECONDS='300'
+# Maximum duration of a JWKS HTTP request, in seconds. Example: 5
 OIDC_JWKS_TIMEOUT_SECONDS='5'
 
-### PathoCore authorization and Keycloak administration
+### PathoCore authorization
 PATHOCORE_ENABLE_PUBLIC_READ_ENDPOINTS='true'
 PATHOCORE_ACCESS_REQUEST_USE_CASES='[{"name":"mepram","label":"MEPRAM","labs":[]},{"name":"relecov","label":"RELECOV","labs":[]},{"name":"redlabra","label":"RedLaBRA","labs":[]},{"name":"ai-models","label":"AI Models","labs":[]}]'
 PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS=''
-KEYCLOAK_ADMIN_API_BASE_URL='https://CHANGE_ME'
-KEYCLOAK_ADMIN_API_REALM='CHANGE_ME'
+
+### Application-side Keycloak Admin REST API client
+# Generated only when ADDONS.keycloak.ADMIN_ACCESS is true.
+# Base Keycloak URL without /realms/<realm>. Example: https://auth.example.org
+KEYCLOAK_ADMIN_API_BASE_URL='http://pathocore-api-keycloak:8080'
+# Realm managed by the application. Example: institutional-realm
+KEYCLOAK_ADMIN_API_REALM='ciberisciii_datahub'
+# Realm used to obtain the admin access token. Example: master
 KEYCLOAK_ADMIN_API_TOKEN_REALM='master'
+# OAuth client used for admin-token requests. Example: admin-cli
 KEYCLOAK_ADMIN_API_CLIENT_ID='admin-cli'
+# Optional confidential-client secret; leave empty for password authentication.
 KEYCLOAK_ADMIN_API_CLIENT_SECRET=''
+# Optional service administrator username. Example: pathocore-admin
 KEYCLOAK_ADMIN_API_USERNAME=''
+# Secret for KEYCLOAK_ADMIN_API_USERNAME; leave empty when client-secret auth is used.
 KEYCLOAK_ADMIN_API_PASSWORD=''
+# Timeout in seconds for Keycloak Admin REST API requests. Example: 10
 KEYCLOAK_ADMIN_API_TIMEOUT_SECONDS='10'
+# Send Keycloak required-action emails after account changes. Example: true
 KEYCLOAK_ADMIN_API_SEND_ACTION_EMAILS='true'
+# Optional absolute redirect URI included in required-action emails.
+# Example: https://app.example.org/account/ready
 KEYCLOAK_ADMIN_API_ACTION_EMAIL_REDIRECT_URI=''
 
 ### Email
