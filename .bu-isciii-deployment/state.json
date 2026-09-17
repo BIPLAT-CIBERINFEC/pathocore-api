@@ -2,11 +2,11 @@
   "config": {
     "ADDONS": {
       "apache": {
-        "CONFIG_SERVICE": "app"
+        "CONFIG_SERVICE": "pathocore-api"
       },
       "keycloak": {
         "ADMIN_ACCESS": true,
-        "CONFIG_SERVICE": "app"
+        "CONFIG_SERVICE": "pathocore-api"
       }
     },
     "APP_NAME": "PathoCore API",
@@ -16,7 +16,7 @@
     "PYTHON_VERSION": "3.12",
     "REPOSITORY_URL": "https://github.com/BU-ISCIII/pathocore-api.git",
     "SERVICES": {
-      "app": {
+      "pathocore-api": {
         "API": true,
         "BUILD_CONTEXT": ".",
         "DOCKERFILE": "Dockerfile",
@@ -33,29 +33,29 @@
     ".dockerignore": "bd9c115511d6b9dae318e4b6a85ddb282e60a46fd89c6cdecccdc20c668eb0e9",
     ".gitignore": "de487336ed72efd6601b985eda1c83754d6ee33b1cb4ce9f8973411caae833ed",
     "Dockerfile": "85cc463641e0a16e7ec4d0b41b1e06b94b6e1b4d5d72f9143e07d59a1aa78412",
-    "LEAME.md": "bfdda26da2f670aad0522c130809e259d6fde98302d3d32fc6794261fcd72a4d",
-    "README.md": "34df9b15b5161218b7dd28b45e70a0b19969c6d68f59d4fa811a9592c52ee858",
+    "LEAME.md": "67cab688b88759b98918ba02e8f8839ca6717aa0d9a7f00295d10de034503274",
+    "README.md": "d7079876410600694baac1f34c6cc153bd1d6f0ff1abf85f60e324dbf53af9b8",
     "conf/INSTALL_SETTINGS.md": "6e2942b250b7435660dc7b341c17a294cdc21e53c8fe9861a64260789b94721d",
     "conf/apache/00-logs.conf": "3c2ab4e693e528d2cad37c0c5bb0bc4511803a7f206b339182de192d4e398092",
     "conf/apache/01-reverse-proxy.conf": "69e70d5dc2414ff3f7ed83496c795a5178306a2966fb646297883de50146da2f",
     "conf/apache/02-server-status.conf": "c3b5d26f9b551083faf0d85b188bfa9c577ff0bd3b805f0ec104fe4f7d5101cb",
     "conf/apache/apache_production_settings.txt": "011380b0e5fbc04af3c46750a1f6e3a67394b767c7fb04d503576c86e0f6d170",
     "conf/apache/apache_test_settings.txt": "eaf8ea483c197ed0853a291cc2d8436f05ac3130f6c330c323d9eeab362b0b9e",
-    "conf/docker_production_settings.txt": "a2ffb05270bc368e4e815672a957da9f2a48fb9e4f3b73ce6055e1f7f478a90a",
-    "conf/docker_test_settings.txt": "933e49a39ebfb26304bc8cc86273c245ee6734949ead9eac707bd7a6ca71ff9e",
+    "conf/docker_production_settings.txt": "8f9a6bf9a706c7fb0de8a85e601afef23d6d12af0f49d94e7a1e0c94a8d01b6e",
+    "conf/docker_test_settings.txt": "0cd53be4aa611d9dbd644cf1d49abea6e3871b29f6381f2c5640b2299165aefa",
     "conf/keycloak/keycloak_production_settings.txt": "738ced39544d2beb1f9c31a60b8532c451e9716199c73b77b62c45e0e9b7adf5",
     "conf/keycloak/keycloak_test_settings.txt": "7c7d39027fa5da36a765e39b8883cb97f6a70634d1f7dcbec7ae414fd204059e",
     "conf/template_settings.py": "c5992e0f3c790e278f5b9836bf83e5f5b09065da15cdcec51c1a5fd0672d1899",
-    "container_install.sh": "acb4e4a68890eb4d286bca75a4cf89ee17bcfcc0940dd10602eae834c72f54ec",
+    "container_install.sh": "b270741c5a79bd6005c7dc098a1769cdcdbf115bbf9e08ee8f2e53b74bc1ba77",
     "deployment_health/README.md": "3d7c4295938708813369deeac9edc0eb8fe2153c77d03f9138febf3aed715aa5",
     "deployment_health/__init__.py": "bedcff132309f8970b1ca72fcea20c7cb38bb727d48f82d96dbf7104922abda0",
     "deployment_health/urls.py": "8d274b44d326f26d71b05021a34969c742478efbe47691aadd8c3a90ba16f340",
     "deployment_health/views.py": "d19cc3e8fef8519bae2b7fbdc25d17f6ae7df02479aa8890f4b4d250bb07f2e4",
-    "docker-compose.prod.yml": "b75b0aed0e7ca59a108122da522cd7c5ecfc9a2d0fa8e497516ad60b4bd5cf5b",
-    "docker-compose.test.yml": "a951927d23398046342abad4a9d49f1732707f20894330f78f553ae0d13b0fee",
+    "docker-compose.prod.yml": "660bc432c78883e5f5e134e32e3c54af60b81a1f56956985e8d3ce0308099680",
+    "docker-compose.test.yml": "2aa98edf91545e69cf2e15a22bee91b2d9e502fcf0158a7e41f99b2a1de7eaec",
     "install.sh": "9710a9a07973c725bb9fd3118d31ab76fd5dc8c8e411a9963ca7fc947c98241e",
     "scripts/container_start.sh": "7a27a79cd238c7155319b23cdf5e13baad278f841a7a96b448c65ef22dca7299",
-    "scripts/smoke_test.sh": "2f04e8c7632e6288f4226b34cb5a7737dd186abc2cecaeb14d7c63f0b90748dd"
+    "scripts/smoke_test.sh": "3e36e32f240fca76c11159b7ba002917b6389c7931ac6c30fcbdaf22b18b04c5"
   },
   "source": "BU-ISCIII deployment standards",
   "standard_version": "0.1.0"

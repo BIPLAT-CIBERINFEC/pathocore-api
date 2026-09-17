@@ -81,7 +81,7 @@ Services:
 
 | Service | Profile | Build context | Internal port |
 |---|---|---|---:|
-| `app` | `django` | `.` | settings: `APP_PORT` |
+| `pathocore-api` | `django` | `.` | settings: `APP_PORT` |
 
 - Django services build with an ephemeral settings secret, render protected host settings, and run controlled migration/bootstrap steps.
 - Scheduled Django jobs run through Supercronic inside the application
@@ -111,7 +111,7 @@ template that this topology consumes:
 
 ```bash
 install -d -m 0700 deployment/settings
-install -m 0600 conf/docker_production_settings.txt deployment/settings/app_production_settings.txt
+install -m 0600 conf/docker_production_settings.txt deployment/settings/pathocore-api_production_settings.txt
 install -m 0600 conf/apache/apache_production_settings.txt deployment/settings/apache_production_settings.txt
 install -m 0600 conf/keycloak/keycloak_production_settings.txt deployment/settings/keycloak_production_settings.txt
 ```
@@ -209,7 +209,7 @@ Docker:
 ```bash
 bash container_install.sh --action install --engine docker \
   --git_revision <reviewed-tag-or-commit> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 Podman:
@@ -217,7 +217,7 @@ Podman:
 ```bash
 bash container_install.sh --action install --engine podman \
   --git_revision <reviewed-tag-or-commit> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 The installer creates `.env.production.file` for later direct Compose
@@ -230,11 +230,11 @@ nor this generated environment file is copied into image layers.
 
 | Asset | Production location | Backup/rebuild policy |
 |---|---|---|
-| `app` database | External production database | Database backup before migration |
-| `app` documents | `app_documents` named volume | Volume backup |
-| `app` static | `app_static` named volume | Replaceable through collectstatic |
-| `app` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
-| `app` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
+| `pathocore-api` database | External production database | Database backup before migration |
+| `pathocore-api` documents | `pathocore-api_documents` named volume | Volume backup |
+| `pathocore-api` static | `pathocore-api_static` named volume | Replaceable through collectstatic |
+| `pathocore-api` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
+| `pathocore-api` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
 | Apache logs | `/var/log/local/pathocore-api/apache` host bind | Retain/rotate per institutional log policy |
 | Rendered Apache configuration | `deployment/apache/` in the deployment checkout | Rebuildable; preserve reviewed source configuration |
 | Keycloak database | `keycloak_db_data` MySQL named volume | Database and identity backup |
@@ -292,7 +292,7 @@ notes:
 ```bash
 bash container_install.sh --action upgrade --engine podman \
   --git_revision <new-reviewed-tag-or-commit> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 Replace `podman` with `docker` for a Docker-managed deployment. Stop on build,
@@ -329,11 +329,11 @@ after the application developer documents and tests those integrations.
 ```bash
 # Stage application files and dependencies.
 bash install.sh --stage install --git_revision current \
-  --conf deployment/settings/app_production_settings.txt
+  --conf deployment/settings/pathocore-api_production_settings.txt
 
 # Bootstrap the prepared runtime (settings, migrations and static files).
 bash install.sh --bootstrap install \
-  --conf deployment/settings/app_production_settings.txt
+  --conf deployment/settings/pathocore-api_production_settings.txt
 ```
 
 For upgrades, take a backup and replace both `install` actions with `upgrade`.
@@ -428,7 +428,7 @@ DB_USER='CHANGE_ME'
 mkdir -p "$BACKUP_DIR"
 git rev-parse HEAD > "$BACKUP_DIR/git-revision.txt"
 cp .env.production.file "$BACKUP_DIR/"
-cp deployment/settings/app_production_settings.txt "$BACKUP_DIR/"
+cp deployment/settings/pathocore-api_production_settings.txt "$BACKUP_DIR/"
 cp deployment/settings/apache_production_settings.txt "$BACKUP_DIR/"
 cp deployment/settings/keycloak_production_settings.txt "$BACKUP_DIR/"
 chmod -R go-rwx "$BACKUP_DIR"
@@ -472,7 +472,7 @@ Compatible application-only rollback:
 ```bash
 bash container_install.sh --action upgrade --engine podman \
   --git_revision <previous-reviewed-revision> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 Full restore when schema or persistent-file formats are incompatible must run
@@ -491,11 +491,11 @@ mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --password \
 podman volume import "$DOCUMENTS_VOLUME" "$BACKUP_DIR/documents.tar"
 tar -C /srv/containers/bind -xzf "$BACKUP_DIR/bind-mounts.tar.gz"
 install -d -m 0700 deployment/settings
-install -m 0600 "$BACKUP_DIR/app_production_settings.txt" deployment/settings/app_production_settings.txt
+install -m 0600 "$BACKUP_DIR/pathocore-api_production_settings.txt" deployment/settings/pathocore-api_production_settings.txt
 install -m 0600 "$BACKUP_DIR/apache_production_settings.txt" deployment/settings/apache_production_settings.txt
 install -m 0600 "$BACKUP_DIR/keycloak_production_settings.txt" deployment/settings/keycloak_production_settings.txt
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d pathocore-api-keycloak-db
 until podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   exec -T pathocore-api-keycloak-db sh -c \
@@ -520,7 +520,7 @@ volume at `/data` and extracting `/backup/documents.tar` there.
 
    ```bash
    bash container_install.sh --action fix-permissions --engine podman \
-     --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+     --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
    ```
 
 5. Do not fake migrations, delete volumes, or rebuild from an unrecorded
@@ -528,23 +528,23 @@ volume at `/data` and extracting `/backup/documents.tar` there.
 
 ### Service-specific operational commands
 
-#### Django service `app`
+#### Django service `pathocore-api`
 
 ```bash
 # Logs and an interactive shell (replace podman with docker when applicable).
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  logs --tail 200 app
+  logs --tail 200 pathocore-api
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash
+  exec pathocore-api bash
 
 # Rebuild static assets without running migrations.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash -lc \
+  exec pathocore-api bash -lc \
   'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py collectstatic --noinput'
 
 # Inspect Django and migration state before deciding whether to recover.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash -lc \
+  exec pathocore-api bash -lc \
   'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py check --deploy && python manage.py showmigrations --plan'
 ```
 
@@ -586,7 +586,7 @@ be replaced, move it to a timestamped backup instead of deleting evidence:
 sudo mv /var/log/local/pathocore-api/apache/modsec_debug.log \
   /var/log/local/pathocore-api/apache/modsec_debug.log.blocked
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 podman compose --env-file .env.production.file -f docker-compose.prod.yml restart pathocore-api-apache
 ```
 
@@ -656,10 +656,10 @@ URL and obtain a valid access token from the configured Keycloak client.
 
    ```bash
    podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-     exec app bash -lc \
+     exec pathocore-api bash -lc \
      'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py refresh_databrowser_cache && python manage.py refresh_use_case_cache'
    podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-     exec app bash -lc 'cat "$INSTALL_PATH/cron/pathocore-api"'
+     exec pathocore-api bash -lc 'cat "$INSTALL_PATH/cron/pathocore-api"'
    ```
 
 Record the tested revision, public URL, Keycloak realm/client, test identity,

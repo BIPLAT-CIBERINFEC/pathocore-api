@@ -15,14 +15,14 @@ APPLICATION_NAME="PathoCore API"
 # Regenerate these callbacks from the descriptor; keep application-neutral
 # lifecycle mechanics below unchanged.
 # ============================================================================
-install_services=(app)
+install_services=(pathocore-api)
 addon_build_services=()
-permission_services=(app pathocore-api-apache pathocore-api-keycloak-db pathocore-api-keycloak)
-configured_services=(app apache keycloak)
+permission_services=(pathocore-api pathocore-api-apache pathocore-api-keycloak-db pathocore-api-keycloak)
+configured_services=(pathocore-api apache keycloak)
 
 default_service_install_conf() {
     case "$1" in
-        app) [ "$mode" = test ] && echo conf/docker_test_settings.txt || echo conf/docker_production_settings.txt ;;
+        pathocore-api) [ "$mode" = test ] && echo conf/docker_test_settings.txt || echo conf/docker_production_settings.txt ;;
         apache) [ "$mode" = test ] && echo conf/apache/apache_test_settings.txt || echo conf/apache/apache_production_settings.txt ;;
         keycloak) [ "$mode" = test ] && echo conf/keycloak/keycloak_test_settings.txt || echo conf/keycloak/keycloak_production_settings.txt ;;
         *) return 1 ;;
@@ -30,7 +30,7 @@ default_service_install_conf() {
 }
 service_build_context_dir() {
     case "$1" in
-        app) echo . ;;
+        pathocore-api) echo . ;;
         *) return 1 ;;
     esac
 }
@@ -60,31 +60,31 @@ service_install_path() {
 }
 service_readiness_path() {
     case "$1" in
-        app) echo "$(service_install_path "$1")/manage.py" ;;
+        pathocore-api) echo "$(service_install_path "$1")/manage.py" ;;
         *) return 1 ;;
     esac
 }
 service_image_name() {
     case "$1" in
-        app) echo pathocore-api:local ;;
+        pathocore-api) echo pathocore-api:local ;;
         *) return 1 ;;
     esac
 }
 service_profile() {
     case "$1" in
-        app) echo django ;;
+        pathocore-api) echo django ;;
         *) return 1 ;;
     esac
 }
 service_dockerfile() {
     case "$1" in
-        app) echo Dockerfile ;;
+        pathocore-api) echo Dockerfile ;;
         *) return 1 ;;
     esac
 }
 service_container_install_conf() {
     case "$1" in
-        app) echo conf/.runtime_install_settings.txt ;;
+        pathocore-api) echo conf/.runtime_install_settings.txt ;;
         *) return 1 ;;
     esac
 }
@@ -97,13 +97,13 @@ service_gid() {
 
 prepare_compose_environment() {
     local -a settings_sources=(
-        "APP|${install_conf_host_by_service[app]}"
+        "PATHOCORE_API|${install_conf_host_by_service[pathocore-api]}"
         "|${install_conf_host_by_service[apache]}"
         "|${install_conf_host_by_service[keycloak]}"
     )
     local -a deployment_values=(
         "GIT_REVISION|$git_revision"
-        "APP_IMAGE|pathocore-api:local"
+        "PATHOCORE_API_IMAGE|pathocore-api:local"
     )
     compose_env_file="$script_dir/.env.${mode}.file"
     write_compose_environment_file "$compose_env_file" settings_sources deployment_values
@@ -129,10 +129,10 @@ print_service_summary() {
 prepare_application_host_sources() {
     local settings_output
     if [ "$mode" = production ]; then
-        settings_output="$(service_environment_value app DJANGO_SETTINGS_PATH)"
-        [ -n "$settings_output" ] || { echo "DJANGO_SETTINGS_PATH is required for app" >&2; return 1; }
+        settings_output="$(service_environment_value pathocore-api DJANGO_SETTINGS_PATH)"
+        [ -n "$settings_output" ] || { echo "DJANGO_SETTINGS_PATH is required for pathocore-api" >&2; return 1; }
         mkdir -p "$(dirname "$settings_output")"
-        prepare_django_settings_bind_mount ./conf/template_settings.py "$settings_output" "${install_conf_host_by_service[app]}"
+        prepare_django_settings_bind_mount ./conf/template_settings.py "$settings_output" "${install_conf_host_by_service[pathocore-api]}"
     fi
     # conf/apache contains the application-owned Apache sources. Render every
     # deployment value only after the protected settings environment is loaded,
@@ -140,7 +140,7 @@ prepare_application_host_sources() {
     local apache_source_dir="$script_dir/conf/apache"
     local apache_output_dir="$script_dir/deployment/apache"
     local apache_conf_name apache_config_service apache_log_path
-    apache_config_service=app
+    apache_config_service=pathocore-api
     [ -d "$apache_source_dir" ] || {
         echo "Apache source configuration directory not found: $apache_source_dir" >&2
         return 1
@@ -195,17 +195,17 @@ prepare_application_host_sources() {
 # the shared helper skips paths that are not used by the active mode.
 prepare_host_bind_source_permissions() {
     local log_path settings_path uid gid
-    log_path="$(service_environment_value app HOST_LOG_PATH)"
-    settings_path="$(service_environment_value app DJANGO_SETTINGS_PATH)"
-    [ -n "$log_path" ] || { echo "HOST_LOG_PATH is required for app" >&2; return 1; }
-    [ -n "$settings_path" ] || { echo "DJANGO_SETTINGS_PATH is required for app" >&2; return 1; }
-    uid="$(service_uid app)"; gid="$(service_gid app)"
-    local -a app_host_bind_permission_spec=(
+    log_path="$(service_environment_value pathocore-api HOST_LOG_PATH)"
+    settings_path="$(service_environment_value pathocore-api DJANGO_SETTINGS_PATH)"
+    [ -n "$log_path" ] || { echo "HOST_LOG_PATH is required for pathocore-api" >&2; return 1; }
+    [ -n "$settings_path" ] || { echo "DJANGO_SETTINGS_PATH is required for pathocore-api" >&2; return 1; }
+    uid="$(service_uid pathocore-api)"; gid="$(service_gid pathocore-api)"
+    local -a pathocore_api_host_bind_permission_spec=(
         "$log_path|$uid:$gid|0775"
         "$(dirname "$settings_path")|-|0755"
         "$settings_path|$uid:$gid|0664"
     )
-    apply_host_permission_spec "${app_host_bind_permission_spec[@]}"
+    apply_host_permission_spec "${pathocore_api_host_bind_permission_spec[@]}"
     # Generated proxy configuration is read-only in Apache. Its host files need
     # traversal/read permissions, while the configured log source must be writable.
     apache_log_path="${APACHE_LOG_PATH:?APACHE_LOG_PATH is required}"
@@ -239,15 +239,15 @@ prepare_running_container_mount_permissions() {
     local service_name="$1" container_id="$2"
     local install_path uid gid
     case "$service_name" in
-        app)
+        pathocore-api)
             install_path="$(service_install_path "$service_name")"
             uid="$(service_uid "$service_name")"; gid="$(service_gid "$service_name")"
-            local -a app_running_mount_permission_spec=(
+            local -a pathocore_api_running_mount_permission_spec=(
                 "$install_path/logs|$uid:$gid|u+rwX,g+rwX"
                 "$install_path/documents|$uid:$gid|u+rwX,g+rwX"
                 "$install_path/static|$uid:$gid|u+rwX,g+rwX,o+rX"
             )
-            apply_container_directory_permission_spec "$container_id" "${app_running_mount_permission_spec[@]}"
+            apply_container_directory_permission_spec "$container_id" "${pathocore_api_running_mount_permission_spec[@]}"
             prepare_django_container_settings_permissions "$container_id" "$install_path/conf/settings.py" "$uid" "$gid"
             ;;
         pathocore-api-apache)
@@ -279,7 +279,7 @@ bootstrap_service() {
     local repo_path runtime_conf uid gid status
     local -a args
     case "$service_name" in
-        app)
+        pathocore-api)
             repo_path="$(service_repo_path "$service_name")"
             # Fixed temporary in-container path; this is not operator configuration.
             runtime_conf=conf/.runtime_install_settings.txt
@@ -314,9 +314,9 @@ load_test_deployment_data() {
         die "PathoCore has no default demo-data download URL; provide " \
             "--demo_data or explicitly use --skip_demo_data"
     fi
-    app_container="$(current_service_container app)" \
+    app_container="$(current_service_container pathocore-api)" \
         || die "Unable to resolve the PathoCore application container"
-    app_install_path="$(service_install_path app)"
+    app_install_path="$(service_install_path pathocore-api)"
     container_seed="/tmp/$(basename "$demo_data")"
 
     echo "Loading PathoCore SQL seed into the configured application database"

@@ -77,11 +77,11 @@ Persistencia declarada por el despliegue:
 
 | Activo | Ubicacion de produccion | Requisito de recuperacion |
 |---|---|---|
-| `app` database | External production database | Database backup before migration |
-| `app` documents | `app_documents` named volume | Volume backup |
-| `app` static | `app_static` named volume | Replaceable through collectstatic |
-| `app` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
-| `app` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
+| `pathocore-api` database | External production database | Database backup before migration |
+| `pathocore-api` documents | `pathocore-api_documents` named volume | Volume backup |
+| `pathocore-api` static | `pathocore-api_static` named volume | Replaceable through collectstatic |
+| `pathocore-api` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
+| `pathocore-api` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
 | Apache logs | `/var/log/local/pathocore-api/apache` host bind | Retain/rotate per institutional log policy |
 | Rendered Apache configuration | `deployment/apache/` in the deployment checkout | Rebuildable; preserve reviewed source configuration |
 | Keycloak database | `keycloak_db_data` MySQL named volume | Database and identity backup |
@@ -128,7 +128,7 @@ copia en las capas de las imagenes.
 
 ```bash
 install -d -m 0700 deployment/settings
-install -m 0600 conf/docker_production_settings.txt deployment/settings/app_production_settings.txt
+install -m 0600 conf/docker_production_settings.txt deployment/settings/pathocore-api_production_settings.txt
 install -m 0600 conf/apache/apache_production_settings.txt deployment/settings/apache_production_settings.txt
 install -m 0600 conf/keycloak/keycloak_production_settings.txt deployment/settings/keycloak_production_settings.txt
 ```
@@ -154,9 +154,9 @@ donde indican:
 ```bash
 PODMAN_USER='<usuario-podman>'
 (
-  source deployment/settings/app_production_settings.txt
-  : "${HOST_LOG_PATH:?HOST_LOG_PATH is required for app}"
-  : "${DJANGO_SETTINGS_PATH:?DJANGO_SETTINGS_PATH is required for app}"
+  source deployment/settings/pathocore-api_production_settings.txt
+  : "${HOST_LOG_PATH:?HOST_LOG_PATH is required for pathocore-api}"
+  : "${DJANGO_SETTINGS_PATH:?DJANGO_SETTINGS_PATH is required for pathocore-api}"
   sudo install -d -o "$PODMAN_USER" -g "$PODMAN_USER" \
     "$HOST_LOG_PATH" "$(dirname "$DJANGO_SETTINGS_PATH")"
 )
@@ -181,7 +181,7 @@ manualmente.
 
 ```bash
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 ## Backup antes de actualizar
@@ -195,7 +195,7 @@ git rev-parse HEAD > "$BACKUP_DIR/git-revision.txt"
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   images > "$BACKUP_DIR/images.txt"
 cp .env.production.file "$BACKUP_DIR/"
-cp deployment/settings/app_production_settings.txt "$BACKUP_DIR/"
+cp deployment/settings/pathocore-api_production_settings.txt "$BACKUP_DIR/"
 cp deployment/settings/apache_production_settings.txt "$BACKUP_DIR/"
 cp deployment/settings/keycloak_production_settings.txt "$BACKUP_DIR/"
 chmod -R go-rwx "$BACKUP_DIR"
@@ -251,7 +251,7 @@ con modo `0600`, porque conserva usuarios y valores de configuracion del
 entorno de pruebas.
 
 La base de datos configurada en
-`deployment/settings/app_production_settings.txt` debe existir y estar vacia.
+`deployment/settings/pathocore-api_production_settings.txt` debe existir y estar vacia.
 La accion `install` aplica la migracion inicial, carga las tablas de referencia
 estandar y, por ultimo, importa el fichero de datos solicitado mediante
 `--demo_data`:
@@ -260,7 +260,7 @@ estandar y, por ultimo, importa el fichero de datos solicitado mediante
 bash container_install.sh --action install --engine podman \
   --git_revision <revision-aprobada> \
   --demo_data ../pathocore_api_demo_data.sql \
-  --install_conf_map app,deployment/settings/app_production_settings.txt \
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt \
   --install_conf_map apache,deployment/settings/apache_production_settings.txt \
   --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt \
   2>&1 | tee "$(date +%Y%m%d_%H%M%S)_prod_install.log"
@@ -278,7 +278,7 @@ actualizacion:
 ```bash
 bash container_install.sh --action upgrade --engine podman \
   --git_revision <nueva-revision-aprobada> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt \
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt \
   --install_conf_map apache,deployment/settings/apache_production_settings.txt \
   --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt \
   2>&1 | tee "$(date +%Y%m%d_%H%M%S)_prod_install.log"
@@ -310,7 +310,7 @@ bash scripts/smoke_test.sh --engine podman
 
 Completar las comprobaciones que corresponden a la topologia seleccionada:
 
-- `app`: confirmar `/health/` y un flujo representativo de lectura.
+- `pathocore-api`: confirmar `/health/` y un flujo representativo de lectura.
 - API: confirmar `/swagger/` con autenticacion valida y que una credencial
   ausente o invalida sea rechazada.
 - Apache: confirmar la URL publica, DNS/TLS, proxy, cabeceras reenviadas y el
@@ -330,7 +330,7 @@ la revision anterior registrada y repetir las pruebas:
 ```bash
 bash container_install.sh --action upgrade --engine podman \
   --git_revision <revision-anterior> \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 Si no son compatibles, detener escrituras, usar un checkout limpio de la
@@ -344,11 +344,11 @@ podman volume import <volumen-documents> "$BACKUP_DIR/documents.tar"
 podman volume import <volumen-static> "$BACKUP_DIR/static.tar"
 tar -C /srv/containers/bind -xzf "$BACKUP_DIR/bind-mounts.tar.gz"
 install -d -m 0700 deployment/settings
-install -m 0600 "$BACKUP_DIR/app_production_settings.txt" deployment/settings/app_production_settings.txt
+install -m 0600 "$BACKUP_DIR/pathocore-api_production_settings.txt" deployment/settings/pathocore-api_production_settings.txt
 install -m 0600 "$BACKUP_DIR/apache_production_settings.txt" deployment/settings/apache_production_settings.txt
 install -m 0600 "$BACKUP_DIR/keycloak_production_settings.txt" deployment/settings/keycloak_production_settings.txt
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d pathocore-api-keycloak-db
 until podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   exec -T pathocore-api-keycloak-db sh -c \
@@ -380,7 +380,7 @@ Primera fase, incluso con los contenedores detenidos:
 
 ```bash
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 Esta accion no construye imagenes, no migra la base de datos y no borra datos.
@@ -390,7 +390,7 @@ Arrancar y repetirla para reparar tambien los volumenes montados:
 ```bash
 podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d
 bash container_install.sh --action fix-permissions --engine podman \
-  --install_conf_map app,deployment/settings/app_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
 ## Operaciones utiles
@@ -403,25 +403,25 @@ podman compose --env-file .env.production.file -f docker-compose.prod.yml restar
 podman compose --env-file .env.production.file -f docker-compose.prod.yml down
 ```
 
-### Servicio Django `app`
+### Servicio Django `pathocore-api`
 
 ```bash
 # Logs separados del servicio.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  logs --tail 200 app
+  logs --tail 200 pathocore-api
 
 # Entrar al contenedor.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash
+  exec pathocore-api bash
 
 # Regenerar static sin ejecutar migraciones.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash -lc \
+  exec pathocore-api bash -lc \
   'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py collectstatic --noinput'
 
 # Diagnostico previo a una recuperacion de bootstrap.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash -lc \
+  exec pathocore-api bash -lc \
   'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py check --deploy && python manage.py showmigrations --plan'
 ```
 
@@ -432,7 +432,7 @@ autoriza un bootstrap manual despues del backup:
 
 ```bash
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec app bash -lc \
+  exec pathocore-api bash -lc \
   'cd "$INSTALL_PATH" && source virtualenv/bin/activate && python manage.py migrate --noinput && python manage.py collectstatic --noinput'
 ```
 
