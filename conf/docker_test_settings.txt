@@ -44,23 +44,24 @@ API_THROTTLE_RATE='500/hour'
 API_DOCS_REQUIRE_STAFF='true'
 
 ### OpenID Connect (OIDC) access-token validation
-# Generated because ADDONS.keycloak.CONFIG_SERVICE selects this service.
+# Generated because ADDONS.keycloak.OIDC_SERVICES selects this service.
 # Disabled by default so disposable tests do not require identity bootstrap.
 # Require a valid OIDC access token for protected API endpoints. Example: false
 OIDC_AUTH_REQUIRED='false'
 # Identity-provider URL expected in the JWT `iss` (issuer) claim. It must match
 # exactly, including scheme, hostname, port, path, realm, and trailing slash.
 # Example: http://127.0.0.1:8081/realms/test
-OIDC_ISSUER='http://keycloak.localhost:8380/realms/ciberisciii_datahub'
+OIDC_ISSUER='http://keycloak.localhost:8480/realms/ciberisciii_datahub'
 # JSON Web Key Set (JWKS) endpoint used to verify token signatures. This is a
 # server-to-server URL and may use an internal container hostname.
-# Example: http://127.0.0.1:8081/realms/test/protocol/openid-connect/certs
-OIDC_JWKS_URL='http://pathocore-api-keycloak:8080/realms/ciberisciii_datahub/protocol/openid-connect/certs'
+# The stable `keycloak` Compose-network alias is independent of the project slug.
+# Example: http://keycloak:8080/realms/test/protocol/openid-connect/certs
+OIDC_JWKS_URL='http://keycloak:8080/realms/ciberisciii_datahub/protocol/openid-connect/certs'
 # API identifier expected in the JWT `aud` (audience) claim. Example: test-api
 OIDC_AUDIENCE='pathocore-api'
 # OAuth/OIDC client identifier expected as the authorized calling application.
 # Example: test-client
-OIDC_CLIENT_ID='pathocore-api'
+OIDC_CLIENT_ID='pathocore-web'
 # How long downloaded JWKS signing keys remain cached, in seconds. Example: 300
 OIDC_JWKS_CACHE_TTL_SECONDS='300'
 # Maximum duration of a JWKS HTTP request, in seconds. Example: 5
@@ -74,7 +75,7 @@ PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS=''
 ### Application-side Keycloak Admin REST API client
 # Generated only when ADDONS.keycloak.ADMIN_ACCESS is true. Test values are disposable.
 # Internal Compose URL for the Keycloak service. Example: http://keycloak:8080
-KEYCLOAK_ADMIN_API_BASE_URL='http://pathocore-api-keycloak:8080'
+KEYCLOAK_ADMIN_API_BASE_URL='http://keycloak:8080'
 # Disposable realm managed by the application. Example: test
 KEYCLOAK_ADMIN_API_REALM='ciberisciii_datahub'
 # Realm used to obtain the admin access token. Example: master

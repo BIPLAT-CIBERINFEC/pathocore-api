@@ -44,7 +44,7 @@ services:
       PATHOCORE_ENABLE_PUBLIC_READ_ENDPOINTS: ${PATHOCORE_API_PATHOCORE_ENABLE_PUBLIC_READ_ENDPOINTS:-true}
       PATHOCORE_ACCESS_REQUEST_USE_CASES: ${PATHOCORE_API_PATHOCORE_ACCESS_REQUEST_USE_CASES:-[]}
       PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS: ${PATHOCORE_API_PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS:-}
-      KEYCLOAK_ADMIN_API_BASE_URL: ${PATHOCORE_API_KEYCLOAK_ADMIN_API_BASE_URL:-http://pathocore-api-keycloak:8080}
+      KEYCLOAK_ADMIN_API_BASE_URL: ${PATHOCORE_API_KEYCLOAK_ADMIN_API_BASE_URL:-http://keycloak:8080}
       KEYCLOAK_ADMIN_API_REALM: ${PATHOCORE_API_KEYCLOAK_ADMIN_API_REALM:-test}
       KEYCLOAK_ADMIN_API_TOKEN_REALM: ${PATHOCORE_API_KEYCLOAK_ADMIN_API_TOKEN_REALM:-master}
       KEYCLOAK_ADMIN_API_CLIENT_ID: ${PATHOCORE_API_KEYCLOAK_ADMIN_API_CLIENT_ID:-admin-cli}
@@ -153,7 +153,10 @@ services:
     volumes:
       # Generated test realm; edit its source configuration, not tmp-import.
       - ${KEYCLOAK_IMPORT_PATH:-./keycloak/tmp-import}:/opt/keycloak/data/import:ro,z
-    networks: [deployment_net]
+    networks:
+      deployment_net:
+        aliases:
+          - keycloak
   # END BU-ISCIII ADDON: keycloak
   pathocore-api-db:
     image: docker.io/library/mysql:8.0
