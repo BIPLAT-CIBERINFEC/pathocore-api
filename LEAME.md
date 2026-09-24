@@ -14,7 +14,7 @@ abajo con valores o referencias institucionales verificadas.
 - [Configurar los ajustes de produccion](#configurar-los-ajustes-de-produccion)
 - [Preparar directorios persistentes del host](#preparar-directorios-persistentes-del-host)
 - [Backup antes de actualizar](#backup-antes-de-actualizar)
-- [Ejecutar la primera instalacion o una actualizacion](#ejecutar-la-primera-instalacion-o-una-actualizacion)
+- [Ejecutar la actualizacion](#ejecutar-la-actualizacion)
 - [Comprobaciones posteriores](#comprobaciones-posteriores)
 - [Rollback](#rollback)
 - [Reparar permisos](#reparar-permisos)
@@ -25,6 +25,7 @@ abajo con valores o referencias institucionales verificadas.
 
 - Podman rootless y un proveedor de Compose funcionales.
 - El mismo usuario sin privilegios para el instalador y Podman.
+
 Entradas de despliegue que deben quedar registradas antes de ejecutar:
 
 | Entrada | Evidencia requerida |
@@ -47,9 +48,10 @@ completo. La libreria compartida detecta ambos proveedores automaticamente.
 
 ## Estructura de directorios en los servidores
 
-Todos los despliegues usan esta estructura institucional. El nombre de la
-aplicacion separa sus fuentes bind, logs y backups; Podman administra su propio
-storage y no debe modificarse manualmente.
+Todos los despliegues usan esta estructura institucional. El despliegue separa
+sus fuentes, binds, logs y backups; un servicio externo puede conservar un
+namespace distinto, definido por sus rutas protegidas. Podman administra su
+propio storage y no debe modificarse manualmente.
 
 ```text
 /opt/containers_apps/
@@ -61,14 +63,14 @@ storage y no debe modificarse manualmente.
 ├── backup/
 │   └── pathocore-api/               # Backup central recomendado
 ├── bind/
-│   └── pathocore-api/
+│   └── <namespace-configurado>/
 │       └── settings/                   # settings.py renderizado por servicio
 ├── shared/                             # Datos compartidos entre aplicaciones
 └── storage/
     └── <usuario-podman>/               # Storage rootless gestionado por Podman
 
 /var/log/local/
-└── pathocore-api/
+└── <namespace-configurado>/
     ├── apache/
     └── apps/
 ```
@@ -80,8 +82,8 @@ Persistencia declarada por el despliegue:
 | `pathocore-api` database | External production database | Database backup before migration |
 | `pathocore-api` documents | `pathocore-api_documents` named volume | Volume backup |
 | `pathocore-api` static | `pathocore-api_static` named volume | Replaceable through collectstatic |
-| `pathocore-api` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
-| `pathocore-api` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
+| `pathocore-api` logs | Host bind configured by `HOST_LOG_PATH` in `pathocore-api_production_settings.txt` | Retain/rotate per institutional log policy |
+| `pathocore-api` rendered settings | Host bind configured by `DJANGO_SETTINGS_PATH` in `pathocore-api_production_settings.txt` | Protected configuration backup |
 | Apache logs | `/var/log/local/pathocore-api/apache` host bind | Retain/rotate per institutional log policy |
 | Rendered Apache configuration | `deployment/apache/` in the deployment checkout | Rebuildable; preserve reviewed source configuration |
 | Keycloak database | `keycloak_db_data` MySQL named volume | Database and identity backup |
@@ -91,7 +93,8 @@ Persistencia declarada por el despliegue:
 
 Crear solo las ubicaciones necesarias para obtener el codigo y guardar backups.
 Sustituir `<usuario-podman>` por la cuenta que ejecutara siempre Podman y el
-instalador. Los binds y logs se crean despues de completar los ajustes.
+instalador; normalmente es la cuenta de la sesion actual. Los binds y logs se
+crean mas adelante, despues de completar los ajustes protegidos.
 
 ```bash
 sudo mkdir -p /opt/containers_apps/pathocore-api
@@ -118,7 +121,7 @@ Registrar el commit exacto con `git rev-parse HEAD`.
 
 ## Configurar los ajustes de produccion
 
-Crear un fichero ignorado y con modo `0600` por servicio a partir de su
+Este codigo va a crear un fichero ignorado y con modo `0600` por servicio a partir de su
 `conf/docker_production_settings.txt`. Resolver todos los `CHANGE_ME` y revisar
 la matriz [`conf/INSTALL_SETTINGS.md`](conf/INSTALL_SETTINGS.md). El instalador
 genera `.env.production.file` con valores runtime, incluidos secretos copiados
@@ -133,9 +136,6 @@ install -m 0600 conf/apache/apache_production_settings.txt deployment/settings/a
 install -m 0600 conf/keycloak/keycloak_production_settings.txt deployment/settings/keycloak_production_settings.txt
 ```
 
-Editar unicamente las copias bajo `deployment/settings/`. Los comandos de
-instalacion y actualizacion usan estas rutas protegidas.
-
 Valores que requieren decision del responsable de la aplicacion:
 
 - hostnames publicos, TLS y proxy;
@@ -144,12 +144,16 @@ Valores que requieren decision del responsable de la aplicacion:
 - correo, identidad, almacenamiento y ajustes propios de la aplicacion;
 - administrador inicial y transferencia segura de sus credenciales.
 
-Completar todas esas decisiones y resolver cada `CHANGE_ME` antes de continuar.
+Editar unicamente las copias bajo `deployment/settings/`, completar todas esas
+decisiones y resolver cada `CHANGE_ME` antes de continuar. Los comandos de
+instalacion y actualizacion usan estas rutas protegidas.
 
 ## Preparar directorios persistentes del host
 
-Solo despues de completar y revisar los ajustes, crear los binds exactamente
-donde indican:
+Solo despues de completar y revisar todos los ajustes, crear los binds
+exactamente donde indica cada servicio. Los ficheros se cargan como el usuario
+actual dentro de subshells; solo `install -d` usa privilegios. Esto incluye
+servicios con un namespace de host distinto al despliegue principal.
 
 ```bash
 PODMAN_USER='<usuario-podman>'
@@ -163,84 +167,28 @@ PODMAN_USER='<usuario-podman>'
 (
   source deployment/settings/apache_production_settings.txt
   : "${APACHE_LOG_PATH:?APACHE_LOG_PATH is required for apache}"
-  sudo install -d -o "$PODMAN_USER" -g "$PODMAN_USER" "$APACHE_LOG_PATH"
+  sudo install -d -o "$PODMAN_USER" -g "$PODMAN_USER" \
+    "$APACHE_LOG_PATH"
 )
 (
   source deployment/settings/keycloak_production_settings.txt
   : "${KEYCLOAK_IMPORT_PATH:?KEYCLOAK_IMPORT_PATH is required for keycloak}"
-  sudo install -d -o "$PODMAN_USER" -g "$PODMAN_USER" "$KEYCLOAK_IMPORT_PATH"
+  sudo install -d -o "$PODMAN_USER" -g "$PODMAN_USER" \
+    "$KEYCLOAK_IMPORT_PATH"
 )
 ```
 
-Los ficheros se cargan como el usuario actual dentro de subshells; solo
-`install -d` usa privilegios. No ejecutar los ficheros completos con `sudo`.
-
-Con los directorios preparados, aplicar UID/GID internos, modos y etiquetas
-SELinux mediante el instalador. No modificar `/srv/containers/storage/`
-manualmente.
+Revisar las rutas resueltas antes de ejecutar. No usar valores procedentes de
+una configuracion no revisada y no ejecutar los ficheros completos con `sudo`.
+Aplicar despues UID/GID internos, modos y etiquetas SELinux mediante el
+instalador. No modificar `/srv/containers/storage/` manualmente.
 
 ```bash
 bash container_install.sh --action fix-permissions --engine podman \
   --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
-## Backup antes de actualizar
-
-Crear un directorio identificado y registrar el estado desplegado:
-
-```bash
-BACKUP_DIR="/srv/containers/backup/pathocore-api/$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-git rev-parse HEAD > "$BACKUP_DIR/git-revision.txt"
-podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  images > "$BACKUP_DIR/images.txt"
-cp .env.production.file "$BACKUP_DIR/"
-cp deployment/settings/pathocore-api_production_settings.txt "$BACKUP_DIR/"
-cp deployment/settings/apache_production_settings.txt "$BACKUP_DIR/"
-cp deployment/settings/keycloak_production_settings.txt "$BACKUP_DIR/"
-chmod -R go-rwx "$BACKUP_DIR"
-```
-
-Exportar la base de datos externa desde un punto coherente:
-
-```bash
-mysqldump --single-transaction --routines --triggers \
-  --host=<db-host> --port=<db-port> --user=<db-user> --password \
-  <db-name> > "$BACKUP_DIR/database.sql"
-```
-
-Localizar y exportar cada volumen no reconstruible declarado en la tabla:
-
-```bash
-podman volume ls | grep 'pathocore-api'
-podman volume export <volumen-documents> > "$BACKUP_DIR/documents.tar"
-podman volume export <volumen-static> > "$BACKUP_DIR/static.tar"
-podman compose --env-file .env.production.file -f docker-compose.prod.yml \
-  exec -T pathocore-api-keycloak-db sh -c \
-  'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
-  > "$BACKUP_DIR/keycloak-database.sql"
-```
-
-Exportar `documents` y `static` por cada servicio Django que los declare;
-omitir esos comandos para perfiles sin dichos volumenes. Aunque `static` puede
-regenerarse con `collectstatic`, conservarlo permite una restauracion exacta.
-El dump logico de Keycloak es obligatorio: contiene realms, usuarios, clientes
-y grupos, mientras que el JSON staged solo inicializa realms nuevos.
-
-Guardar tambien los bind mounts persistentes. Los logs se conservan segun su
-politica de retencion; la configuracion protegida debe incluirse siempre.
-
-```bash
-tar -C /srv/containers/bind -czf "$BACKUP_DIR/bind-mounts.tar.gz" pathocore-api
-tar -C /var/log/local -czf "$BACKUP_DIR/logs.tar.gz" pathocore-api
-sha256sum "$BACKUP_DIR"/* > "$BACKUP_DIR/SHA256SUMS"
-```
-
-No continuar hasta verificar los ficheros, espacio disponible y procedimiento
-de restauracion.
-
-## Ejecutar la primera instalacion o una actualizacion
-
+<!-- BEGIN BU-ISCIII APPLICATION: production-runbook -->
 ### Primera instalacion
 
 Usar `../pathocore_api_demo_data.sql`, extraido del dump de pruebas como SQL
@@ -269,19 +217,77 @@ bash container_install.sh --action install --engine podman \
 No restaurar el dump completo sobre esta instalacion ni usar `--fake`: el
 esquema y su historial pertenecen exclusivamente a las migraciones de la
 revision seleccionada.
+<!-- END BU-ISCIII APPLICATION: production-runbook -->
 
-### Actualizaciones posteriores
+## Backup antes de actualizar
 
-No volver a importar el dump ni cargar las tablas iniciales durante una
-actualizacion:
+Crear un directorio identificado y registrar el estado desplegado:
+
+```bash
+BACKUP_DIR="/srv/containers/backup/pathocore-api/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+git rev-parse HEAD > "$BACKUP_DIR/git-revision.txt"
+podman compose --env-file .env.production.file -f docker-compose.prod.yml \
+  images > "$BACKUP_DIR/images.txt"
+cp .env.production.file "$BACKUP_DIR/"
+cp deployment/settings/pathocore-api_production_settings.txt "$BACKUP_DIR/"
+cp deployment/settings/apache_production_settings.txt "$BACKUP_DIR/"
+cp deployment/settings/keycloak_production_settings.txt "$BACKUP_DIR/"
+chmod -R go-rwx "$BACKUP_DIR"
+```
+
+Para cada base gestionada por Compose, exportar un dump logico desde su servicio;
+para cada base externa, exportarlo desde un punto coherente:
+
+```bash
+# Base gestionada por Compose:
+podman compose --env-file .env.production.file -f docker-compose.prod.yml \
+  exec -T <servicio>-db sh -c 'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  > "$BACKUP_DIR/<servicio>-database.sql"
+
+# Base externa:
+mysqldump --single-transaction --routines --triggers \
+  --host=<db-host> --port=<db-port> --user=<db-user> --password \
+  <db-name> > "$BACKUP_DIR/database.sql"
+```
+
+Localizar y exportar cada volumen no reconstruible declarado en la tabla:
+
+```bash
+podman volume ls | grep 'pathocore-api'
+podman volume export <volumen-documents> > "$BACKUP_DIR/documents.tar"
+podman volume export <volumen-static> > "$BACKUP_DIR/static.tar"
+# Dump logico obligatorio del estado autoritativo de Keycloak.
+podman compose --env-file .env.production.file -f docker-compose.prod.yml \
+  exec -T pathocore-api-keycloak-db sh -c \
+  'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  > "$BACKUP_DIR/keycloak-database.sql"
+```
+
+Exportar `documents` y `static` por cada servicio Django que los declare;
+omitir esos comandos para perfiles sin dichos volumenes. Aunque `static` puede
+regenerarse con `collectstatic`, conservarlo permite una restauracion exacta.
+
+Guardar tambien los bind mounts persistentes. Los logs se conservan segun su
+politica de retencion; la configuracion protegida debe incluirse siempre.
+
+```bash
+tar -C /srv/containers/bind -czf "$BACKUP_DIR/bind-mounts.tar.gz" pathocore-api
+tar -C /var/log/local -czf "$BACKUP_DIR/logs.tar.gz" pathocore-api
+sha256sum "$BACKUP_DIR"/* > "$BACKUP_DIR/SHA256SUMS"
+```
+
+No continuar hasta verificar los ficheros, espacio disponible y procedimiento
+de restauracion.
+
+## Ejecutar la actualizacion
+
+Ejecutar el comando de instalación/upgrade:
 
 ```bash
 bash container_install.sh --action upgrade --engine podman \
   --git_revision <nueva-revision-aprobada> \
-  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt \
-  --install_conf_map apache,deployment/settings/apache_production_settings.txt \
-  --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt \
-  2>&1 | tee "$(date +%Y%m%d_%H%M%S)_prod_install.log"
+  --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt 2>&1 | tee "$(date +%Y%m%d_%H%M%S)_prod_install.log"
 ```
 
 Durante `--action upgrade`, `container_install.sh`:
@@ -310,17 +316,14 @@ bash scripts/smoke_test.sh --engine podman
 
 Completar las comprobaciones que corresponden a la topologia seleccionada:
 
-- `pathocore-api`: confirmar `/health/` y un flujo representativo de lectura.
-- API: confirmar `/swagger/` con autenticacion valida y que una credencial
-  ausente o invalida sea rechazada.
-- Apache: confirmar la URL publica, DNS/TLS, proxy, cabeceras reenviadas y el
-  endpoint restringido de estado.
-- Keycloak: confirmar discovery del realm, validacion OIDC, login/logout y las
-  solicitudes de acceso administrativo de PathoCore.
-- Confirmar entrega de correo y la actualizacion programada de la cache de
-  DataBrowser.
+- `pathocore-api`: confirmar su endpoint `/health/` y un flujo representativo de lectura.
+- API de `pathocore-api`: confirmar la ruta documentada con autenticacion valida y el rechazo de credenciales ausentes o invalidas.
+- Apache: confirmar la URL publica registrada, DNS/TLS, proxy, cabeceras reenviadas y el endpoint restringido de server-status.
+- Keycloak: confirmar discovery del realm, validacion de tokens OIDC y login/logout; probar acceso administrativo solo cuando el add-on lo habilite.
 
-Registrar URL y resultados junto con estado, imagenes y revision desplegada.
+Verificar tambien correo, tareas programadas y los flujos propios documentados
+por la aplicacion. Registrar URL y resultados junto con estado, imagenes y
+revision desplegada.
 
 ## Rollback
 
@@ -333,11 +336,12 @@ bash container_install.sh --action upgrade --engine podman \
   --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
-Si no son compatibles, detener escrituras, usar un checkout limpio de la
-revision guardada en `git-revision.txt` y restaurar el punto completo:
+Si no son compatibles, detener escrituras y restaurar el punto completo:
 
 ```bash
 podman compose --env-file .env.production.file -f docker-compose.prod.yml down
+# Restaurar directamente las bases externas. Para una base gestionada por
+# Compose, arrancar <servicio>-db, esperar su healthcheck e importar desde él.
 mysql --host=<db-host> --port=<db-port> --user=<db-user> --password \
   <db-name> < "$BACKUP_DIR/database.sql"
 podman volume import <volumen-documents> "$BACKUP_DIR/documents.tar"
@@ -349,6 +353,7 @@ install -m 0600 "$BACKUP_DIR/apache_production_settings.txt" deployment/settings
 install -m 0600 "$BACKUP_DIR/keycloak_production_settings.txt" deployment/settings/keycloak_production_settings.txt
 bash container_install.sh --action fix-permissions --engine podman \
   --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+# Arrancar solo la base de datos, esperar readiness y restaurar su dump logico.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d pathocore-api-keycloak-db
 until podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   exec -T pathocore-api-keycloak-db sh -c \
@@ -359,11 +364,12 @@ podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   < "$BACKUP_DIR/keycloak-database.sql"
 ```
 
-`fix-permissions` regenera `.env.production.file` desde todos los ajustes
-protegidos antes de restaurar Keycloak. Desplegar la revision ya comprobada,
-arrancar y validar antes de
-reabrir el servicio. Los volumenes deben existir y estar vacios antes de
-`podman volume import`; recrearlos con Compose cuando sea necesario.
+Restaurar todos los ficheros de ajustes protegidos y desplegar la revision
+anotada en `git-revision.txt`. `fix-permissions` regenera
+`.env.production.file` antes de cualquier restauracion gestionada por un
+add-on. Arrancar y validar antes de reabrir el servicio. Los volumenes deben
+existir y estar vacios antes de `podman volume import`; recrearlos con Compose
+cuando sea necesario.
 
 ## Reparar permisos
 

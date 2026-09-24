@@ -1,5 +1,6 @@
 # PathoCore API
 
+<!-- BEGIN BU-ISCIII APPLICATION: overview -->
 Django REST API for PathoCore genomic and epidemiological data.
 
 PathoCore API provides shared schema management, sample and metadata ingestion,
@@ -39,6 +40,7 @@ For bugs, deployment problems, or feature requests, open an issue in the
 [PathoCore API issue tracker](https://github.com/BU-ISCIII/pathocore-api/issues).
 Do not include credentials, tokens, patient data, or other sensitive deployment
 information in public issues.
+<!-- END BU-ISCIII APPLICATION: overview -->
 
 - [Get the code (required)](#get-the-code-required)
 - [Choose your path](#choose-your-path)
@@ -84,8 +86,6 @@ Services:
 | `pathocore-api` | `django` | `.` | settings: `APP_PORT` |
 
 - Django services build with an ephemeral settings secret, render protected host settings, and run controlled migration/bootstrap steps.
-- Scheduled Django jobs run through Supercronic inside the application
-  container from the project's `CRONJOBS` setting.
 
 Selected add-ons:
 
@@ -176,25 +176,6 @@ that supplies fixtures or demo files must set
 in its wrapper; otherwise explicit demo data is rejected. Production never
 selects or loads demo data by default, and upgrades never reload it.
 
-PathoCore has no default demo-data download URL. A fresh test install therefore
-requires `--demo_data <path>` unless demo loading is explicitly disabled with
-`--skip_demo_data` or `--skip_test_data`.
-
-PathoCore accepts `.sql` and `.sql.gz` data-only seeds for fresh test or
-production installations when `--demo_data` is explicitly supplied. The seed
-must match the checked-out migrations and must not create or replace schema or
-`django_migrations` history:
-
-```bash
-bash container_install.sh --test --action install --engine docker \
-  --demo_data /path/to/pathocore-test-data.sql.gz
-```
-
-The reviewed PathoCore seed may replace initial reference rows, but it must not
-replace their tables. Fresh installs still run the standard initial fixture
-before importing demo data. Production never selects a seed implicitly, and
-upgrades never reload one.
-
 For an automatic first administrator, set `CREATE_INITIAL_SUPERUSER=true` and
 the `DJANGO_SUPERUSER_*` values in the selected test settings before install.
 An existing account is never reset. Open the loopback URL using `APP_PORT` from
@@ -233,8 +214,8 @@ nor this generated environment file is copied into image layers.
 | `pathocore-api` database | External production database | Database backup before migration |
 | `pathocore-api` documents | `pathocore-api_documents` named volume | Volume backup |
 | `pathocore-api` static | `pathocore-api_static` named volume | Replaceable through collectstatic |
-| `pathocore-api` logs | `/var/log/local/pathocore-api/apps` host bind | Retain/rotate per institutional log policy |
-| `pathocore-api` rendered settings | `/srv/containers/bind/pathocore-api/settings/` host bind | Protected configuration backup |
+| `pathocore-api` logs | Host bind configured by `HOST_LOG_PATH` in `pathocore-api_production_settings.txt` | Retain/rotate per institutional log policy |
+| `pathocore-api` rendered settings | Host bind configured by `DJANGO_SETTINGS_PATH` in `pathocore-api_production_settings.txt` | Protected configuration backup |
 | Apache logs | `/var/log/local/pathocore-api/apache` host bind | Retain/rotate per institutional log policy |
 | Rendered Apache configuration | `deployment/apache/` in the deployment checkout | Rebuildable; preserve reviewed source configuration |
 | Keycloak database | `keycloak_db_data` MySQL named volume | Database and identity backup |
@@ -254,19 +235,9 @@ request limits, timeouts, health paths, and static/media routing together.
 
 #### Scheduled jobs
 
-PathoCore refreshes its DataBrowser and use-case summary caches every Friday at
-12:00 through `core.cron.refresh_databrowser_caches`. Container deployments run
-the job through Supercronic from the project's `CRONJOBS` setting and append
-output to `logs/crontab.log`. Retry either cache manually with:
-
-```bash
-python manage.py refresh_databrowser_cache
-python manage.py refresh_use_case_cache
-```
-
-For bare-metal deployments, register the same setting with
-`python manage.py crontab add` and verify it with
-`python manage.py crontab show`.
+The application developer must list every scheduler/worker, whether a failed
+job blocks a workflow, and how operators inspect and retry it. Do not add an
+untracked host cron job when the application profile owns scheduling.
 
 ### Manage containers after installation
 
@@ -376,10 +347,12 @@ and review of the version-specific guide.
 
 ### Database creation, users and grants
 
-Production databases are externally managed unless the application documents a
-different supported topology. Create a dedicated schema and least-privilege
-account, verify connectivity from the application container, and keep DBA
-commands and credentials outside this repository.
+Each Django service declares `DATABASE` as `external` or `compose`. A Compose-managed
+database is initialized from that service's protected `DB_NAME`, `DB_USER`, and
+`DB_PASSWORD` values and persists in its `<service>_db_data` volume. For an
+external database, create a dedicated schema and least-privilege account, verify
+connectivity from the application container, and keep DBA credentials outside
+this repository.
 
 Connect as an authorized database administrator without putting the password
 on the command line:
@@ -433,12 +406,19 @@ cp deployment/settings/apache_production_settings.txt "$BACKUP_DIR/"
 cp deployment/settings/keycloak_production_settings.txt "$BACKUP_DIR/"
 chmod -R go-rwx "$BACKUP_DIR"
 
+# For each Compose-managed application database:
+podman compose --env-file .env.production.file -f docker-compose.prod.yml \
+  exec -T <service>-db sh -c 'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  > "$BACKUP_DIR/<service>-database.sql"
+
+# For each external application database:
 mysqldump --single-transaction --routines --triggers \
   --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --password \
   "$DB_NAME" > "$BACKUP_DIR/database.sql"
 
 podman volume ls | grep 'pathocore-api'
 podman volume export "$DOCUMENTS_VOLUME" > "$BACKUP_DIR/documents.tar"
+# Dump logico obligatorio del estado autoritativo de Keycloak.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   exec -T pathocore-api-keycloak-db sh -c \
   'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
@@ -475,8 +455,7 @@ bash container_install.sh --action upgrade --engine podman \
   --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
 ```
 
-Full restore when schema or persistent-file formats are incompatible must run
-from a clean checkout of the revision recorded in `git-revision.txt`:
+Full restore when schema or persistent-file formats are incompatible:
 
 ```bash
 BACKUP_DIR='/srv/containers/backup/pathocore-api/CHANGE_ME'
@@ -486,6 +465,8 @@ DB_PORT='3306'
 DB_NAME='CHANGE_ME'
 DB_USER='CHANGE_ME'
 podman compose --env-file .env.production.file -f docker-compose.prod.yml down
+# Restore external databases directly. For Compose-managed databases, start
+# <service>-db, wait for its healthcheck, and import through that service.
 mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --password \
   "$DB_NAME" < "$BACKUP_DIR/database.sql"
 podman volume import "$DOCUMENTS_VOLUME" "$BACKUP_DIR/documents.tar"
@@ -496,6 +477,7 @@ install -m 0600 "$BACKUP_DIR/apache_production_settings.txt" deployment/settings
 install -m 0600 "$BACKUP_DIR/keycloak_production_settings.txt" deployment/settings/keycloak_production_settings.txt
 bash container_install.sh --action fix-permissions --engine podman \
   --install_conf_map pathocore-api,deployment/settings/pathocore-api_production_settings.txt --install_conf_map apache,deployment/settings/apache_production_settings.txt --install_conf_map keycloak,deployment/settings/keycloak_production_settings.txt
+# Arrancar solo la base de datos, esperar readiness y restaurar su dump logico.
 podman compose --env-file .env.production.file -f docker-compose.prod.yml up -d pathocore-api-keycloak-db
 until podman compose --env-file .env.production.file -f docker-compose.prod.yml \
   exec -T pathocore-api-keycloak-db sh -c \
@@ -608,6 +590,7 @@ use `keycloak_db_data` as the authoritative identity backup.
 
 ## Final configuration steps
 
+<!-- BEGIN BU-ISCIII APPLICATION: final-configuration -->
 Complete these checks with reviewed non-production identities before accepting
 a new installation. Set `PUBLIC_URL` to the externally visible PathoCore base
 URL and obtain a valid access token from the configured Keycloak client.
@@ -665,8 +648,13 @@ URL and obtain a valid access token from the configured Keycloak client.
 Record the tested revision, public URL, Keycloak realm/client, test identity,
 email evidence, cache result, and acceptance owner without storing tokens or
 credentials in the report.
+<!-- END BU-ISCIII APPLICATION: final-configuration -->
 
 ## Developer notes
+
+<!-- BEGIN BU-ISCIII APPLICATION: developer-notes -->
+Add application-specific development, test, and release workflows here.
+<!-- END BU-ISCIII APPLICATION: developer-notes -->
 
 ### Shared container installer library
 
@@ -706,12 +694,12 @@ manually changing engine storage.
 bash scripts/smoke_test.sh --engine podman
 ```
 
-After the baseline smoke test succeeds, complete the authenticated OIDC,
-access-request, email and DataBrowser cache checks in
-[Final configuration steps](#final-configuration-steps).
+Application developers must extend the baseline smoke test with authenticated
+and domain-specific read workflows without removing the generated checks.
 
 ## Application documentation
 
+<!-- BEGIN BU-ISCIII APPLICATION: documentation-links -->
 - The deployed OpenAPI interface is available at authenticated `/swagger/` and
   `/swagger/redoc/` routes.
 - Deployment configuration is documented in
@@ -720,3 +708,4 @@ access-request, email and DataBrowser cache checks in
   [PathoCore API issue tracker](https://github.com/BU-ISCIII/pathocore-api/issues).
   Never include credentials, access tokens, patient data or protected settings
   in an issue.
+<!-- END BU-ISCIII APPLICATION: documentation-links -->

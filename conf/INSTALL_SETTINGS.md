@@ -35,10 +35,11 @@ undocumented environment variable alone does not configure Django.
 | `DB_PASSWORD` | yes | yes | Application database password |
 | `DB_ROOT_PASSWORD` | test only | yes | Root password for disposable Compose MySQL |
 
-Production uses an external database. The production Compose file deliberately
-contains no database service and publishes no database port. When that database
-runs on the container host, use `host.docker.internal` with either Docker or
-Podman; the production service maps it to the host gateway.
+`SERVICES.<name>.DATABASE` selects the production topology. The default
+`external` mode generates no database service; use `host.docker.internal` when
+the operator-managed database runs on the container host. The `compose` mode
+generates a private `<service>-db` MySQL service and persistent
+`<service>_db_data` volume; it does not publish the database port.
 
 ## Django and HTTP
 
@@ -86,7 +87,21 @@ Developer review checklist:
 - add acceptance checks for email, identity, storage, workers, and scheduled
   jobs used by real workflows.
 
+<!-- BEGIN BU-ISCIII APPLICATION: installation-settings -->
+`PATHOCORE_ENABLE_PUBLIC_READ_ENDPOINTS`, `PATHOCORE_ACCESS_REQUEST_USE_CASES`
+and `PATHOCORE_ACCESS_REQUEST_ADMIN_EMAILS` configure public catalogue access
+and the reviewed access-request workflow. `DEFAULT_FROM_EMAIL` and the SMTP
+variables configure its notifications. Keep JSON values valid and never store
+deployment secrets in this tracked template.
+<!-- END BU-ISCIII APPLICATION: installation-settings -->
+
 ## Selected infrastructure add-ons
+
+Add-ons use independent settings below `conf/<addon>/`. For production, copy
+the required add-on templates to protected files and pass them through the same
+repeatable `--install_conf_map <component>,<path>` option used by application
+services. Do not add add-on credentials or deployment values to the Django
+application settings file.
 
 ### Apache
 
@@ -101,13 +116,6 @@ operational values, not Django or React application settings.
 `APACHE_PROXY_TIMEOUT` defaults to its `GUNICORN_TIMEOUT` (or 120 seconds), and
 `APACHE_LOG_STEM` defaults to a filename-safe form of `APACHE_SERVER_NAME`.
 Leave those four derived values empty unless the proxy route needs an override.
-
-PathoCore also declares a dedicated Keycloak VirtualHost. Its non-secret
-`APACHE_KEYCLOAK_*` values define the identity hostname, the `keycloak:8080`
-upstream, forwarded scheme/port, timeout, request limit, and separate log stem.
-`APACHE_KEYCLOAK_SERVER_NAME` must describe the same public URL as
-`KEYCLOAK_PUBLIC_URL`; do not route the API and Keycloak catch-all proxies from
-the same hostname.
 
 `SERVER_STATUS_SERVER_NAME`, `SERVER_STATUS_ALIASES`, and
 `SERVER_STATUS_ALLOW_FROM` configure the restricted Apache status endpoint.
@@ -135,3 +143,12 @@ perform realm or user administration.
 The installer copies it to the deployment-owned `KEYCLOAK_IMPORT_PATH`, which
 is the read-only Keycloak bind source. Realm JSON does not replace a backup of
 the persistent Keycloak database, which is authoritative after initialization.
+
+<!-- BEGIN BU-ISCIII APPLICATION: addon-settings-notes -->
+PathoCore declares a dedicated Keycloak VirtualHost. Its non-secret
+`APACHE_KEYCLOAK_*` values define the identity hostname, the Keycloak upstream,
+forwarded scheme/port, timeout, request limit, and separate log stem.
+`APACHE_KEYCLOAK_SERVER_NAME` must describe the same public URL as
+`KEYCLOAK_PUBLIC_URL`; do not route the API and Keycloak catch-all proxies from
+the same hostname.
+<!-- END BU-ISCIII APPLICATION: addon-settings-notes -->
