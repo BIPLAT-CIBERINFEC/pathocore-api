@@ -1,0 +1,51 @@
+# Keycloak add-on
+# Used only when ADDONS.keycloak selects this application as CONFIG_SERVICE.
+# These values are disposable and must never be reused in production.
+
+# Disposable Keycloak database/schema name. Example: keycloak
+KEYCLOAK_DB_NAME='keycloak'
+# Disposable least-privilege database user. Example: keycloak
+KEYCLOAK_DB_USER='keycloak'
+# Disposable database-user password. Example: keycloak_password
+KEYCLOAK_DB_PASSWORD='keycloak_password'
+# Disposable database initialization root password. Example: root
+KEYCLOAK_DB_ROOT_PASSWORD='root'
+# Host loopback port exposing the test database for diagnostics. Example: 8382
+KEYCLOAK_DB_PORT_HOST='8382'
+
+# Exact browser-facing URL shared by the disposable test deployments.
+# Example: http://keycloak.localhost:8480
+KEYCLOAK_PUBLIC_URL='http://keycloak.localhost:8480'
+# Host loopback diagnostic port exposing Keycloak. Example: 8481
+KEYCLOAK_PORT='8481'
+# Disposable server-bootstrap administrator username. Example: admin
+KEYCLOAK_ADMIN='admin'
+# Disposable server-bootstrap administrator password. Example: admin
+KEYCLOAK_ADMIN_PASSWORD='admin'
+
+# Repository-owned realm template is rendered into a disposable test bind
+# directory before Keycloak starts.
+# Disposable read-only realm-import staging directory.
+# Example: /tmp/example-app/data/keycloak/realm-import
+KEYCLOAK_IMPORT_PATH='/tmp/pathocore-api/data/keycloak/realm-import'
+
+# Added from the BU-ISCIII configuration schema; review local values.
+KEYCLOAK_REALM_TEMPLATE_PATH='./conf/keycloak/realm-test.json'
+KEYCLOAK_REALM='ciberisciii_datahub'
+KEYCLOAK_SMTP_HOST='localhost'
+KEYCLOAK_SMTP_PORT='1025'
+KEYCLOAK_SMTP_FROM='no-reply@example.test'
+KEYCLOAK_SMTP_FROM_DISPLAY_NAME='Test application'
+KEYCLOAK_SMTP_REPLY_TO='support@example.test'
+KEYCLOAK_SMTP_REPLY_TO_DISPLAY_NAME='Test application support'
+KEYCLOAK_SMTP_ENVELOPE_FROM='no-reply@example.test'
+KEYCLOAK_SMTP_AUTH='false'
+KEYCLOAK_SMTP_SSL='false'
+KEYCLOAK_SMTP_STARTTLS='false'
+KEYCLOAK_SMTP_ALLOW_UTF8='true'
+KEYCLOAK_SMTP_CONNECTION_TIMEOUT='10000'
+KEYCLOAK_SMTP_TIMEOUT='10000'
+KEYCLOAK_SMTP_WRITE_TIMEOUT='10000'
+KEYCLOAK_SMTP_USER=''
+KEYCLOAK_SMTP_PASSWORD=''
+KEYCLOAK_EMAIL_THEME='keycloak'
