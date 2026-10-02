@@ -4,7 +4,7 @@ PROJECT_NAME='pathocore_api'
 REQUIRED_MODULES='core'
 
 ### Python executable inside container
-PYTHON_BIN_PATH='python3'
+PYTHON_BIN_PATH='python3.12'
 
 ### External database settings
 DB_USER='change_me_db_user'
