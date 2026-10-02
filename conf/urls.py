@@ -28,6 +28,8 @@ class PublicSpectacularSwaggerView(SpectacularSwaggerView):
 class PublicSpectacularRedocView(SpectacularRedocView):
     authentication_classes = []
     permission_classes = [AllowAny]
+
+
 # END BU-ISCIII APPLICATION: django-url-imports
 
 urlpatterns = [
@@ -48,7 +50,9 @@ urlpatterns = [
         name="v1-redoc",
     ),
     path("openapi/", RedirectView.as_view(pattern_name="v1-schema", permanent=False)),
-    path("swagger/", RedirectView.as_view(pattern_name="v1-swagger-ui", permanent=False)),
+    path(
+        "swagger/", RedirectView.as_view(pattern_name="v1-swagger-ui", permanent=False)
+    ),
     path(
         "swagger/redoc/",
         RedirectView.as_view(pattern_name="v1-redoc", permanent=False),

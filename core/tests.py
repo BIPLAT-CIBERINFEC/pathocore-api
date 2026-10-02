@@ -38,9 +38,7 @@ class ImportSqlSeedCommandTests(SimpleTestCase):
             seed_path = Path(directory) / "unsafe.sql"
             seed_path.write_text("CREATE TABLE should_not_be_imported (id INT);")
 
-            with self.assertRaisesMessage(
-                CommandError, "SQL seed must be data-only"
-            ):
+            with self.assertRaisesMessage(CommandError, "SQL seed must be data-only"):
                 call_command("import_sql_seed", seed_path)
 
     @patch("core.management.commands.import_sql_seed.MySQLdb.connect")
