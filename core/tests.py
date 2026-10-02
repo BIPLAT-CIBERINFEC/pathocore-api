@@ -1,7 +1,9 @@
 import base64
 from datetime import date
 from io import StringIO
-from unittest.mock import patch
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.core import mail
@@ -28,6 +30,39 @@ from core.api.services import sample_metadata_ingestion
 from core.api.services import schema_ingestion
 from core.api.utils import access_control
 from core.api.v1.views import auth_me_view
+
+
+class ImportSqlSeedCommandTests(SimpleTestCase):
+    def test_rejects_schema_changes(self):
+        with TemporaryDirectory() as directory:
+            seed_path = Path(directory) / "unsafe.sql"
+            seed_path.write_text("CREATE TABLE should_not_be_imported (id INT);")
+
+            with self.assertRaisesMessage(
+                CommandError, "SQL seed must be data-only"
+            ):
+                call_command("import_sql_seed", seed_path)
+
+    @patch("core.management.commands.import_sql_seed.MySQLdb.connect")
+    @patch("core.management.commands.import_sql_seed.connections")
+    def test_imports_data_only_seed(self, connections_mock, connect_mock):
+        database_mock = MagicMock()
+        database_mock.get_connection_params.return_value = {"host": "db"}
+        connections_mock.__getitem__.return_value = database_mock
+        connection_mock = connect_mock.return_value
+        connection_mock.next_result.return_value = 1
+        sql = b"DELETE FROM core_sample;\nINSERT INTO core_sample VALUES (1);"
+
+        with TemporaryDirectory() as directory:
+            seed_path = Path(directory) / "data.sql"
+            seed_path.write_bytes(sql)
+
+            call_command("import_sql_seed", seed_path)
+
+        connect_mock.assert_called_once()
+        connection_mock.query.assert_called_once_with(sql)
+        connection_mock.commit.assert_called_once()
+        connection_mock.close.assert_called_once()
 
 
 class AccessControlTests(SimpleTestCase):
