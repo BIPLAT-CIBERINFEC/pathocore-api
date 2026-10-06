@@ -63,6 +63,10 @@ declare -A SERVICE_NAMES=() SERVICE_PORTS=()
 # Application services and their profiles in command-line order.
 declare -A PROFILES=()
 PROFILE_ORDER=()
+# Compose file currently being validated. It is also used to distinguish
+# application defaults from OIDC values that the Keycloak add-on injects at
+# runtime for a specific service.
+COMPOSE_FILE=""
 # Apache ProxyPass targets with their virtual host names (newline-delimited).
 ROUTE_SOURCES=() ROUTE_NAMES=() ROUTE_PRESERVE=() ROUTE_TARGETS=()
 # Host headers each Django service receives, as "host<TAB>source" lines.
@@ -672,6 +676,39 @@ disagreement() {
     REPLY="$text"
 }
 
+# The Keycloak add-on owns OIDC_ISSUER and OIDC_JWKS_URL for services selected
+# by ADDONS.keycloak.OIDC_SERVICES. Their application settings still provide
+# standalone defaults, but Compose deliberately overrides them with the shared
+# public issuer and internal JWKS URL. Do not report those non-effective
+# defaults as a deployment disagreement.
+keycloak_oidc_overridden_by_compose() {
+    local key="$1" prefix service line in_service=0 issuer=0 jwks=0
+
+    case "$key" in
+        *_OIDC_ISSUER) prefix="${key%_OIDC_ISSUER}" ;;
+        *_OIDC_JWKS_URL) prefix="${key%_OIDC_JWKS_URL}" ;;
+        *) return 1 ;;
+    esac
+    service="${prefix,,}"
+    service="${service//_/-}"
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" == "  $service:" ]]; then
+            in_service=1
+            continue
+        fi
+        if [[ "$line" =~ ^\ \ [A-Za-z0-9][A-Za-z0-9_-]*: ]]; then
+            in_service=0
+            continue
+        fi
+        [ "$in_service" = 1 ] || continue
+        [[ "$line" == *"OIDC_ISSUER:"*"KEYCLOAK_PUBLIC_URL"* ]] && issuer=1
+        [[ "$line" == *"OIDC_JWKS_URL:"*"http://keycloak:8080/realms/"* ]] && jwks=1
+    done < "$COMPOSE_FILE"
+
+    [ "$issuer" = 1 ] && [ "$jwks" = 1 ]
+}
+
 check_keycloak() {
     local key value issuer jwks match expected server_side
     local U_SCHEME U_NETLOC U_HOST U_PORT U_PORT_VALID U_PATH
@@ -683,6 +720,10 @@ check_keycloak() {
         issuer=0 jwks=0
         [[ "$key" != *OIDC_ISSUER ]] || issuer=1
         [[ "$key" != *OIDC_JWKS_URL ]] || jwks=1
+        if { [ "$issuer" = 1 ] || [ "$jwks" = 1 ]; } \
+                && keycloak_oidc_overridden_by_compose "$key"; then
+            continue
+        fi
         if [ "$issuer" = 1 ] || [ "$jwks" = 1 ]; then
             url_split "$value"
             match=""
@@ -859,6 +900,7 @@ main() {
         fi
     done
 
+    COMPOSE_FILE="$compose_file"
     read_environment "$env_file"
     read_compose_services "$compose_file"
     if [ -n "$apache_dir" ] && [ -d "$apache_dir" ]; then
