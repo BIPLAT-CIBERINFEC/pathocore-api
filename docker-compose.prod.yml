@@ -36,8 +36,7 @@ services:
       API_THROTTLE_RATE: ${PATHOCORE_API_API_THROTTLE_RATE:-500/hour}
       API_DOCS_REQUIRE_STAFF: ${PATHOCORE_API_API_DOCS_REQUIRE_STAFF:-true}
       OIDC_AUTH_REQUIRED: ${PATHOCORE_API_OIDC_AUTH_REQUIRED:?PATHOCORE_API_OIDC_AUTH_REQUIRED is required}
-      # Tokens carry the public issuer while Django fetches signing keys from
-      # the Keycloak service on the private deployment network.
+      # Tokens use the public issuer; signing keys stay on the Compose network.
       OIDC_ISSUER: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}/realms/${KEYCLOAK_REALM:?KEYCLOAK_REALM is required}
       OIDC_JWKS_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:?KEYCLOAK_REALM is required}/protocol/openid-connect/certs
       OIDC_AUDIENCE: ${PATHOCORE_API_OIDC_AUDIENCE:?PATHOCORE_API_OIDC_AUDIENCE is required}
