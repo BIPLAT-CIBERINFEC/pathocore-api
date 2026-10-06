@@ -35,8 +35,11 @@ services:
       API_THROTTLE_RATE: ${PATHOCORE_API_API_THROTTLE_RATE:-500/hour}
       API_DOCS_REQUIRE_STAFF: ${PATHOCORE_API_API_DOCS_REQUIRE_STAFF:-true}
       OIDC_AUTH_REQUIRED: ${PATHOCORE_API_OIDC_AUTH_REQUIRED:-false}
-      OIDC_ISSUER: ${PATHOCORE_API_OIDC_ISSUER:-}
-      OIDC_JWKS_URL: ${PATHOCORE_API_OIDC_JWKS_URL:-}
+      # The shared test Keycloak service issues tokens with its browser-facing
+      # issuer. Applications retrieve signing keys through the stable internal
+      # service alias, avoiding host-port and project-name coupling.
+      OIDC_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8081}/realms/${KEYCLOAK_REALM:-test}
+      OIDC_JWKS_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:-test}/protocol/openid-connect/certs
       OIDC_AUDIENCE: ${PATHOCORE_API_OIDC_AUDIENCE:-}
       OIDC_CLIENT_ID: ${PATHOCORE_API_OIDC_CLIENT_ID:-}
       OIDC_JWKS_CACHE_TTL_SECONDS: ${PATHOCORE_API_OIDC_JWKS_CACHE_TTL_SECONDS:-300}
@@ -149,6 +152,9 @@ services:
     volumes:
       # Generated test realm; edit its source configuration, not tmp-import.
       - ${KEYCLOAK_IMPORT_PATH:-./keycloak/tmp-import}:/opt/keycloak/data/import:ro,z
+      # OPTIONAL application-owned provider/theme mounts from
+      # ADDONS.keycloak.MOUNTS.
+
     networks:
       deployment_net:
         aliases:
