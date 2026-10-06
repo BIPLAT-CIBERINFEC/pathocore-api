@@ -36,8 +36,10 @@ services:
       API_THROTTLE_RATE: ${PATHOCORE_API_API_THROTTLE_RATE:-500/hour}
       API_DOCS_REQUIRE_STAFF: ${PATHOCORE_API_API_DOCS_REQUIRE_STAFF:-true}
       OIDC_AUTH_REQUIRED: ${PATHOCORE_API_OIDC_AUTH_REQUIRED:?PATHOCORE_API_OIDC_AUTH_REQUIRED is required}
-      OIDC_ISSUER: ${PATHOCORE_API_OIDC_ISSUER:?PATHOCORE_API_OIDC_ISSUER is required}
-      OIDC_JWKS_URL: ${PATHOCORE_API_OIDC_JWKS_URL:?PATHOCORE_API_OIDC_JWKS_URL is required}
+      # Tokens carry the public issuer while Django fetches signing keys from
+      # the Keycloak service on the private deployment network.
+      OIDC_ISSUER: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}/realms/${KEYCLOAK_REALM:?KEYCLOAK_REALM is required}
+      OIDC_JWKS_URL: http://keycloak:8080/realms/${KEYCLOAK_REALM:?KEYCLOAK_REALM is required}/protocol/openid-connect/certs
       OIDC_AUDIENCE: ${PATHOCORE_API_OIDC_AUDIENCE:?PATHOCORE_API_OIDC_AUDIENCE is required}
       OIDC_CLIENT_ID: ${PATHOCORE_API_OIDC_CLIENT_ID:?PATHOCORE_API_OIDC_CLIENT_ID is required}
       OIDC_JWKS_CACHE_TTL_SECONDS: ${PATHOCORE_API_OIDC_JWKS_CACHE_TTL_SECONDS:-300}
@@ -168,9 +170,11 @@ services:
       # REQUIRED reproducible realm import bind. Keycloak imports it only when
       # the realm is absent, normally on a fresh keycloak_db_data volume.
       - ${KEYCLOAK_IMPORT_PATH:-./keycloak/tmp-import}:/opt/keycloak/data/import:ro,z
-      # OPTIONAL provider/theme mounts for multi-app deployments, when needed:
-      # - ${KEYCLOAK_PROVIDER_PATH}:/opt/keycloak/providers:ro,z
-      # - ${KEYCLOAK_THEME_PATH}:/opt/keycloak/themes/custom:ro,z
+      # OPTIONAL application-owned provider/theme mounts from
+      # ADDONS.keycloak.MOUNTS. Examples:
+      # - ./keycloak/themes/pathocore:/opt/keycloak/themes/pathocore:ro,z
+      # - ./keycloak/providers:/opt/keycloak/providers:ro,z
+
     networks:
       deployment_net:
         aliases:
