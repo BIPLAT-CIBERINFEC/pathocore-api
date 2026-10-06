@@ -14,7 +14,7 @@
     "DEFAULT_BRANCH": "develop",
     "DESCRIPTION": "Django REST API for PathoCore genomic and epidemiological data.",
     "PYTHON_VERSION": "3.12",
-    "REPOSITORY_URL": "https://github.com/BU-ISCIII/pathocore-api.git",
+    "REPOSITORY_URL": "https://github.com/BIPLAT-CIBERINFEC/pathocore-api.git",
     "SERVICES": {
       "pathocore-api": {
         "API": true,
