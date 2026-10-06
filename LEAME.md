@@ -110,7 +110,7 @@ Para un checkout nuevo:
 
 ```bash
 cd /opt/containers_apps/pathocore-api
-git clone https://github.com/BU-ISCIII/pathocore-api.git pathocore-api
+git clone https://github.com/BIPLAT-CIBERINFEC/pathocore-api.git pathocore-api
 cd pathocore-api
 git checkout <revision-aprobada>
 ```
