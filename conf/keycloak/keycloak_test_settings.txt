@@ -14,8 +14,9 @@ KEYCLOAK_DB_ROOT_PASSWORD='root'
 KEYCLOAK_DB_PORT_HOST='8382'
 
 # Exact browser-facing URL shared by the disposable test deployments.
-# Example: http://keycloak.localhost:8480
-KEYCLOAK_PUBLIC_URL='http://keycloak.localhost:8480'
+# This standalone test stack publishes Keycloak directly on KEYCLOAK_PORT.
+# Example: http://keycloak.localhost:8481
+KEYCLOAK_PUBLIC_URL='http://keycloak.localhost:8481'
 # Host loopback diagnostic port exposing Keycloak. Example: 8481
 KEYCLOAK_PORT='8481'
 # Disposable server-bootstrap administrator username. Example: admin
