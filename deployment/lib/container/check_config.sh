@@ -63,9 +63,7 @@ declare -A SERVICE_NAMES=() SERVICE_PORTS=()
 # Application services and their profiles in command-line order.
 declare -A PROFILES=()
 PROFILE_ORDER=()
-# Compose file currently being validated. It is also used to distinguish
-# application defaults from OIDC values that the Keycloak add-on injects at
-# runtime for a specific service.
+# Compose file currently being validated.
 COMPOSE_FILE=""
 # Apache ProxyPass targets with their virtual host names (newline-delimited).
 ROUTE_SOURCES=() ROUTE_NAMES=() ROUTE_PRESERVE=() ROUTE_TARGETS=()
@@ -676,12 +674,8 @@ disagreement() {
     REPLY="$text"
 }
 
-# The Keycloak add-on owns OIDC_ISSUER and OIDC_JWKS_URL for services selected
-# by ADDONS.keycloak.OIDC_SERVICES. Their application settings still provide
-# standalone defaults, but Compose deliberately overrides them with the shared
-# public issuer and internal JWKS URL. Do not report those non-effective
-# defaults as a deployment disagreement.
-keycloak_oidc_overridden_by_compose() {
+# Do not validate application OIDC defaults when Compose overrides them.
+compose_overrides_oidc() {
     local key="$1" prefix service line in_service=0 issuer=0 jwks=0
 
     case "$key" in
@@ -721,7 +715,7 @@ check_keycloak() {
         [[ "$key" != *OIDC_ISSUER ]] || issuer=1
         [[ "$key" != *OIDC_JWKS_URL ]] || jwks=1
         if { [ "$issuer" = 1 ] || [ "$jwks" = 1 ]; } \
-                && keycloak_oidc_overridden_by_compose "$key"; then
+                && compose_overrides_oidc "$key"; then
             continue
         fi
         if [ "$issuer" = 1 ] || [ "$jwks" = 1 ]; then
