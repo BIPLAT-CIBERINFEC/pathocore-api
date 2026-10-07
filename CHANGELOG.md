@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Changed`
 
+- [#36](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/36) Align standalone and orchestrated Keycloak OIDC settings, and restore the deployment project descriptor.
 - [#34](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/34) Adopt the BU-ISCIII deployment standard, including Keycloak realm templates, Python 3.12 runtime settings, cron dependencies, guarded data-only SQL seed imports, and Apache forwarded-header handling.
 - [#19](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/19) Refactor production Docker install workflow
 - [#21](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/21) Support multi-use-case access requests and keep API v1 route compatibility.
