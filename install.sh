@@ -219,6 +219,19 @@ PY
 # idempotent so a failed deployment can be retried safely.
 # ============================================================================
 
+install_system_packages() {
+    # Keep failures from package installation visible during image builds.
+    local status
+    set +e
+    ( set -e; install_application_system_packages )
+    status=$?
+    set -e
+    (( status == 0 )) || die "System dependency installation failed during the container build.
+Check the package-manager output above for details. Possible causes
+include repository availability, incompatible package versions,
+network access, or subscription configuration."
+}
+
 install_application_system_packages() {
     # Keep the Dockerfile limited to tools needed to launch this installer.
     # Framework build headers and post-install user-management tools belong to
