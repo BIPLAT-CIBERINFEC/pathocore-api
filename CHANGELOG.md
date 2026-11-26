@@ -3,13 +3,31 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.1.0develop pathocore-api
+## v1.2.0develop pathocore-api
 
 ### `Changed`
 
+- [#39](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/39) Sync with BU-ISCIII deployment standards 9856527: auto-generated Django secret key, configurable Apache config path, versioned container installer, and the shared `install_system_packages` wrapper outside the application block.
 - [#40](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/40) Pin `tj-actions/changed-files` to a commit SHA (v47.0.6) in the lint workflow.
 - [#36](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/36) Align standalone and orchestrated Keycloak OIDC settings, and restore the deployment project descriptor.
 - [#34](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/34) Adopt the BU-ISCIII deployment standard, including Keycloak realm templates, Python 3.12 runtime settings, cron dependencies, guarded data-only SQL seed imports, and Apache forwarded-header handling.
+
+### `Added`
+
+- [#41](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/41) Add a CI workflow that checks the deployment scaffold against the recorded BU-ISCIII standard revision.
+
+### `Fixed`
+
+- [#38](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/38) Restore the deployment installer system-package wrapper required during container image builds.
+
+### `Dependencies`
+
+### `Deprecated`
+
+## v1.1.0 - 2026-10-02
+
+### `Changed`
+
 - [#19](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/19) Refactor production Docker install workflow
 - [#21](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/21) Support multi-use-case access requests and keep API v1 route compatibility.
 - Restore `/v1` as the canonical API prefix while keeping `/api/v1` as a compatibility alias.
@@ -24,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
-- [#41](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/41) Add a CI workflow that checks the deployment scaffold against the recorded BU-ISCIII standard revision.
 - [#14](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/14) Add configurable rate limits to protect API endpoints.
 - [#16](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/16) Add DRF throttling for public API endpoints.
 - [#17](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/17) Notify use-case admins of pending access requests
@@ -35,7 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### `Fixed`
 
 - [#25](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/25) fix install script, now it correctly passes server dns to install settings
-- [#38](https://github.com/BIPLAT-CIBERINFEC/pathocore-api/pull/38) Restore the deployment installer system-package wrapper required during container image builds.
 
 ### `Dependencies`
 

@@ -1,7 +1,7 @@
 {
   "APP_NAME": "PathoCore API",
   "APP_SLUG": "pathocore-api",
-  "APP_VERSION": "1.1.0",
+  "APP_VERSION": "1.2.0",
   "DESCRIPTION": "Django REST API for PathoCore genomic and epidemiological data.",
   "REPOSITORY_URL": "https://github.com/BIPLAT-CIBERINFEC/pathocore-api.git",
   "DEFAULT_BRANCH": "develop",
