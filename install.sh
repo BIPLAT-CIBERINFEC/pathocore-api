@@ -210,17 +210,10 @@ PY
     done
 }
 
-# BEGIN BU-ISCIII APPLICATION: install-hooks
-# ============================================================================
-# APPLICATION CUSTOMIZATION POINTS
-#
-# Keep generic lifecycle code outside this section. Each hook has a safe no-op
-# default. Add project behavior here, document why it is required, and make it
-# idempotent so a failed deployment can be retried safely.
-# ============================================================================
-
 install_system_packages() {
-    # Keep failures from package installation visible during image builds.
+    # Run the application hook in a subshell outside any `||`/`if` test:
+    # Bash disables errexit inside functions called from a tested context,
+    # which would let a failed package install continue silently.
     local status
     set +e
     ( set -e; install_application_system_packages )
@@ -231,6 +224,15 @@ Check the package-manager output above for details. Possible causes
 include repository availability, incompatible package versions,
 network access, or subscription configuration."
 }
+
+# BEGIN BU-ISCIII APPLICATION: install-hooks
+# ============================================================================
+# APPLICATION CUSTOMIZATION POINTS
+#
+# Keep generic lifecycle code outside this section. Each hook has a safe no-op
+# default. Add project behavior here, document why it is required, and make it
+# idempotent so a failed deployment can be retried safely.
+# ============================================================================
 
 install_application_system_packages() {
     # Keep the Dockerfile limited to tools needed to launch this installer.
