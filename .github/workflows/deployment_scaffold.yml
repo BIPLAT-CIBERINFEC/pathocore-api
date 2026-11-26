@@ -1,0 +1,39 @@
+name: deployment_scaffold
+
+# Checks that the generated deployment files still match the BU-ISCIII
+# deployment standard revision recorded in .bu-isciii-deployment/state.json.
+# Read-only: it never runs sync and never deploys.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read recorded standard revision
+        id: standard
+        run: |
+          revision="$(python3 -c 'import json; print(json.load(open(".bu-isciii-deployment/state.json")).get("standard_revision", ""))')"
+          [ -n "$revision" ] || { echo "state.json has no standard_revision" >&2; exit 1; }
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: BU-ISCIII/buisciii-deployment-standards
+          ref: ${{ steps.standard.outputs.revision }}
+          path: .standard
+      - name: Scaffold check
+        run: python3 .standard/scripts/scaffold.py check .
+      - name: Shared library check
+        run: python3 .standard/scripts/scaffold.py check-lib .
+      - name: Shell syntax
+        run: |
+          for f in container_install.sh install.sh scripts/*.sh deployment/lib/container/*.sh; do
+            bash -n "$f"
+          done
